@@ -1,0 +1,546 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Template|Win32">
+      <Configuration>Template</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <SccProjectName>"$/DescentIII/Main/NewEditor", UXLAAAAA</SccProjectName>
+    <SccLocalPath>.</SccLocalPath>
+    <Keyword>MFCProj</Keyword>
+    <ProjectGuid>{39BAEB0D-4A04-4C74-845F-42F71733B1C3}</ProjectGuid>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Template|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v141</PlatformToolset>
+    <UseOfMfc>Static</UseOfMfc>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v141</PlatformToolset>
+    <UseOfMfc>Dynamic</UseOfMfc>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Template|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.Cpp.UpgradeFromVC60.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.Cpp.UpgradeFromVC60.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>.\Debug\</OutDir>
+    <IntDir>.\Debug\</IntDir>
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>.\Release\</OutDir>
+    <IntDir>.\Release\</IntDir>
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <Optimization>Disabled</Optimization>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <WarningLevel>Level3</WarningLevel>
+      <MinimalRebuild>true</MinimalRebuild>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <AdditionalIncludeDirectories>.;..\lib;..\lib\win;..\lib\win\directx;..\;..\editor;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;MONO;NEWEDITOR;_G_TEST_;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AssemblerListingLocation>.\Debug\</AssemblerListingLocation>
+      <PrecompiledHeaderOutputFile>.\Debug\NewEditor.pch</PrecompiledHeaderOutputFile>
+      <ObjectFileName>.\Debug\</ObjectFileName>
+      <ProgramDataBaseFileName>.\Debug\</ProgramDataBaseFileName>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+    </ClCompile>
+    <Midl>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <TypeLibraryName>.\Debug\NewEditor.tlb</TypeLibraryName>
+      <MkTypLibCompatible>true</MkTypLibCompatible>
+      <TargetEnvironment>Win32</TargetEnvironment>
+    </Midl>
+    <ResourceCompile>
+      <Culture>0x0409</Culture>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile>.\Debug\NewEditor.bsc</OutputFile>
+    </Bscmake>
+    <Link>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <OutputFile>.\Debug\NewEditor.exe</OutputFile>
+      <AdditionalDependencies>wsock32.lib;winmm.lib;ddraw.lib;dinput8.lib;dxguid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <StringPooling>true</StringPooling>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <Optimization>MaxSpeed</Optimization>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <WarningLevel>Level3</WarningLevel>
+      <AdditionalIncludeDirectories>.;..\lib;..\lib\win;..\lib\win\directx;..\;..\editor;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
+      <PreprocessorDefinitions>_WINDOWS;WIN32;RELEASE;NEWEDITOR;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AssemblerListingLocation>.\Release\</AssemblerListingLocation>
+      <PrecompiledHeaderOutputFile>.\Release\NewEditor.pch</PrecompiledHeaderOutputFile>
+      <ObjectFileName>.\Release\</ObjectFileName>
+      <ProgramDataBaseFileName>.\Release\</ProgramDataBaseFileName>
+    </ClCompile>
+    <Midl>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <TypeLibraryName>.\Release\NewEditor.tlb</TypeLibraryName>
+      <MkTypLibCompatible>true</MkTypLibCompatible>
+      <TargetEnvironment>Win32</TargetEnvironment>
+    </Midl>
+    <ResourceCompile>
+      <Culture>0x0409</Culture>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile>.\Release\NewEditor.bsc</OutputFile>
+    </Bscmake>
+    <Link>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <IgnoreSpecificDefaultLibraries>nafxcw.lib libcmt.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+      <OutputFile>Release/d3edit.exe</OutputFile>
+      <AdditionalDependencies>nafxcw.lib;libcmt.lib;wsock32.lib;winmm.lib;..\lib\win\directx\ddraw.lib;..\lib\win\directx\dinput.lib;..\lib\win\directx\dxguid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\ambient.cpp" />
+    <ClCompile Include="..\bnode.cpp" />
+    <ClCompile Include="..\boa.cpp" />
+    <ClCompile Include="..\Editor\DallasFlagDlg.cpp" />
+    <ClCompile Include="..\Editor\DallasGenericPromptDlg.cpp" />
+    <ClCompile Include="..\Editor\DallasImportDlg.cpp" />
+    <ClCompile Include="..\Editor\DallasMainDlg.cpp" />
+    <ClCompile Include="..\Editor\DallasSoundDlg.cpp" />
+    <ClCompile Include="..\Editor\DallasStrmAudioDlg.cpp" />
+    <ClCompile Include="..\Editor\DallasTextureDlg.cpp" />
+    <ClCompile Include="..\Editor\DallasUserTypesDlg.cpp" />
+    <ClCompile Include="..\Editor\DallasUtilities.cpp" />
+    <ClCompile Include="..\Editor\DallasVectorPromptDialog.cpp" />
+    <ClCompile Include="..\editor\ebnode.cpp" />
+    <ClCompile Include="..\editor\edoors.cpp" />
+    <ClCompile Include="..\editor\EPath.cpp" />
+    <ClCompile Include="..\editor\Erooms.cpp" />
+    <ClCompile Include="..\editor\Group.cpp" />
+    <ClCompile Include="..\editor\HRoom.cpp" />
+    <ClCompile Include="..\editor\HTexture.cpp" />
+    <ClCompile Include="..\editor\ObjectListCombo.cpp" />
+    <ClCompile Include="..\editor\RoomListCombo.cpp" />
+    <ClCompile Include="..\editor\RoomUVs.cpp" />
+    <ClCompile Include="..\Editor\ScriptCompilerAPI.cpp" />
+    <ClCompile Include="..\editor\selectedroom.cpp" />
+    <ClCompile Include="..\editor\SelManager.cpp" />
+    <ClCompile Include="..\editor\SoundListCombo.cpp" />
+    <ClCompile Include="..\editor\TriggerListCombo.cpp" />
+    <ClCompile Include="..\gamepath.cpp" />
+    <ClCompile Include="..\lightmap_info.cpp" />
+    <ClCompile Include="..\loadlevel.cpp" />
+    <ClCompile Include="..\matcen.cpp" />
+    <ClCompile Include="..\postrender.cpp" />
+    <ClCompile Include="..\room.cpp" />
+    <ClCompile Include="..\ship.cpp" />
+    <ClCompile Include="..\special_face.cpp" />
+    <ClCompile Include="..\terrain.cpp" />
+    <ClCompile Include="..\terrainrender.cpp" />
+    <ClCompile Include="..\TerrainSearch.cpp" />
+    <ClCompile Include="..\Vclip.cpp" />
+    <ClCompile Include="BendDialog.cpp" />
+    <ClCompile Include="CameraSlew.cpp" />
+    <ClCompile Include="DoorwayDialogBar.cpp" />
+    <ClCompile Include="EditLineDialog.cpp" />
+    <ClCompile Include="editor_lighting.cpp" />
+    <ClCompile Include="editor_object_lighting.cpp" />
+    <ClCompile Include="ExtrudeDialog.cpp" />
+    <ClCompile Include="FileNewDialog.cpp" />
+    <ClCompile Include="FolderDialog.cpp" />
+    <ClCompile Include="globals.cpp" />
+    <ClCompile Include="GoalDialog.cpp" />
+    <ClCompile Include="GrListBox.cpp" />
+    <ClCompile Include="HogBrowser.cpp" />
+    <ClCompile Include="LatheDialog.cpp" />
+    <ClCompile Include="LevelFrame.cpp" />
+    <ClCompile Include="LevelInfoDialog.cpp" />
+    <ClCompile Include="LightingDialog.cpp" />
+    <ClCompile Include="LightingProgress.cpp" />
+    <ClCompile Include="ListDialog.cpp" />
+    <ClCompile Include="MainFrm.cpp" />
+    <ClCompile Include="MatcenDialog.cpp" />
+    <ClCompile Include="MissionHogConfigDlg.cpp" />
+    <ClCompile Include="ned_Door.cpp" />
+    <ClCompile Include="ned_DrawWorld.cpp" />
+    <ClCompile Include="ned_GameTexture.cpp" />
+    <ClCompile Include="ned_Geometry.cpp" />
+    <ClCompile Include="ned_GrWnd.cpp" />
+    <ClCompile Include="ned_HFile.cpp" />
+    <ClCompile Include="ned_LevelGoal.cpp" />
+    <ClCompile Include="ned_LevelWnd.cpp" />
+    <ClCompile Include="ned_newstyle.cpp" />
+    <ClCompile Include="ned_Object.cpp" />
+    <ClCompile Include="ned_OrthoWnd.cpp" />
+    <ClCompile Include="ned_PathNode.cpp" />
+    <ClCompile Include="ned_PerspWnd.cpp" />
+    <ClCompile Include="ned_polymodel.cpp" />
+    <ClCompile Include="ned_Render.cpp" />
+    <ClCompile Include="ned_Renderer.cpp" />
+    <ClCompile Include="ned_RendOpenGL.cpp" />
+    <ClCompile Include="ned_Sound.cpp" />
+    <ClCompile Include="ned_TableRead.cpp" />
+    <ClCompile Include="ned_Trigger.cpp" />
+    <ClCompile Include="ned_Util.cpp" />
+    <ClCompile Include="NewEditor.cpp" />
+    <ClCompile Include="ObjectDialogBar.cpp" />
+    <ClCompile Include="ObjectPalette.cpp" />
+    <ClCompile Include="object_lighting.cpp" />
+    <ClCompile Include="PathDialogBar.cpp" />
+    <ClCompile Include="ProgressDialog.cpp" />
+    <ClCompile Include="rad_cast.cpp" />
+    <ClCompile Include="rad_init.cpp" />
+    <ClCompile Include="RefFrameDialog.cpp" />
+    <ClCompile Include="RoomDialogBar.cpp" />
+    <ClCompile Include="RoomFrm.cpp" />
+    <ClCompile Include="RoomProperties.cpp" />
+    <ClCompile Include="ScriptCompiler.cpp" />
+    <ClCompile Include="SettingsDialog.cpp" />
+    <ClCompile Include="SoundDialogBar.cpp" />
+    <ClCompile Include="SplashScreen.cpp" />
+    <ClCompile Include="StdAfx.cpp" />
+    <ClCompile Include="TablefileManager.cpp" />
+    <ClCompile Include="TableView.cpp" />
+    <ClCompile Include="TerrainDialogBar.cpp" />
+    <ClCompile Include="TexAlignDialog.cpp" />
+    <ClCompile Include="TextureDialogBar.cpp" />
+    <ClCompile Include="TexturePalette.cpp" />
+    <ClCompile Include="TipOfTheDay.cpp" />
+    <ClCompile Include="TriggerDialog.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="NewEditor.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\editor\DallasFlagDlg.h" />
+    <ClInclude Include="..\editor\DallasGenericPromptDlg.h" />
+    <ClInclude Include="..\editor\DallasImportDlg.h" />
+    <ClInclude Include="..\editor\DallasMainDlg.h" />
+    <ClInclude Include="..\editor\DallasSoundDlg.h" />
+    <ClInclude Include="..\editor\DallasStrmAudioDlg.h" />
+    <ClInclude Include="..\editor\DallasTextureDlg.h" />
+    <ClInclude Include="..\editor\DallasUserTypesDlg.h" />
+    <ClInclude Include="..\editor\DallasUtilities.h" />
+    <ClInclude Include="..\editor\DallasVectorPromptDialog.h" />
+    <ClInclude Include="..\editor\HRoom.h" />
+    <ClInclude Include="..\editor\ScriptCompilerAPI.h" />
+    <ClInclude Include="..\editor\selectedroom.h" />
+    <ClInclude Include="..\editor\SelManager.h" />
+    <ClInclude Include="..\editor\SoundListCombo.h" />
+    <ClInclude Include="..\LoadLevel.h" />
+    <ClInclude Include="..\vclip.h" />
+    <ClInclude Include="BendDialog.h" />
+    <ClInclude Include="CameraSlew.h" />
+    <ClInclude Include="DoorwayDialogBar.h" />
+    <ClInclude Include="EditLineDialog.h" />
+    <ClInclude Include="editor_lighting.h" />
+    <ClInclude Include="ExtrudeDialog.h" />
+    <ClInclude Include="FileNewDialog.h" />
+    <ClInclude Include="FolderDialog.h" />
+    <ClInclude Include="globals.h" />
+    <ClInclude Include="GoalDialog.h" />
+    <ClInclude Include="GrListBox.h" />
+    <ClInclude Include="HogBrowser.h" />
+    <ClInclude Include="LatheDialog.h" />
+    <ClInclude Include="LevelFrame.h" />
+    <ClInclude Include="LevelInfoDialog.h" />
+    <ClInclude Include="LightingDialog.h" />
+    <ClInclude Include="LightingProgress.h" />
+    <ClInclude Include="ListDialog.h" />
+    <ClInclude Include="MainFrm.h" />
+    <ClInclude Include="MatcenDialog.h" />
+    <ClInclude Include="MissionHogConfigDlg.h" />
+    <ClInclude Include="ned_Door.h" />
+    <ClInclude Include="ned_DrawWorld.h" />
+    <ClInclude Include="ned_GameTexture.h" />
+    <ClInclude Include="ned_Geometry.h" />
+    <ClInclude Include="ned_GLLoad.h" />
+    <ClInclude Include="ned_GrWnd.h" />
+    <ClInclude Include="ned_HFile.h" />
+    <ClInclude Include="ned_LevelWnd.h" />
+    <ClInclude Include="ned_Object.h" />
+    <ClInclude Include="ned_OrthoWnd.h" />
+    <ClInclude Include="ned_PathNode.h" />
+    <ClInclude Include="ned_PerspWnd.h" />
+    <ClInclude Include="ned_Rend.h" />
+    <ClInclude Include="ned_RendOpenGL.h" />
+    <ClInclude Include="ned_Sound.h" />
+    <ClInclude Include="ned_TableFile.h" />
+    <ClInclude Include="ned_Trigger.h" />
+    <ClInclude Include="ned_Util.h" />
+    <ClInclude Include="NewEditor.h" />
+    <ClInclude Include="ObjectDialogBar.h" />
+    <ClInclude Include="ObjectPalette.h" />
+    <ClInclude Include="object_lighting.h" />
+    <ClInclude Include="PathDialogBar.h" />
+    <ClInclude Include="ProgressDialog.h" />
+    <ClInclude Include="radiosity.h" />
+    <ClInclude Include="RefFrameDialog.h" />
+    <ClInclude Include="Resource.h" />
+    <ClInclude Include="RoomDialogBar.h" />
+    <ClInclude Include="RoomFrm.h" />
+    <ClInclude Include="RoomProperties.h" />
+    <ClInclude Include="ScriptCompiler.h" />
+    <ClInclude Include="SettingsDialog.h" />
+    <ClInclude Include="SoundDialogBar.h" />
+    <ClInclude Include="SplashScreen.h" />
+    <ClInclude Include="StdAfx.h" />
+    <ClInclude Include="TablefileManager.h" />
+    <ClInclude Include="TableView.h" />
+    <ClInclude Include="TerrainDialogBar.h" />
+    <ClInclude Include="TexAlignDialog.h" />
+    <ClInclude Include="TextureDialogBar.h" />
+    <ClInclude Include="TexturePalette.h" />
+    <ClInclude Include="TipOfTheDay.h" />
+    <ClInclude Include="TriggerDialog.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\bitmap1.bmp" />
+    <Image Include="res\bmp00001.bmp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </Image>
+    <Image Include="res\bmp00002.bmp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </Image>
+    <Image Include="res\bmp00003.bmp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </Image>
+    <Image Include="res\bmp00004.bmp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </Image>
+    <Image Include="res\bmp00005.bmp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </Image>
+    <Image Include="res\bmp00006.bmp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </Image>
+    <Image Include="res\D3Launch.ico" />
+    <Image Include="res\DallasTreeIcons.bmp" />
+    <Image Include="res\down.ico" />
+    <Image Include="res\edge_con.bmp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </Image>
+    <Image Include="res\edge_con.ico" />
+    <Image Include="res\edge_exp.bmp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </Image>
+    <Image Include="res\edge_exp.ico" />
+    <Image Include="res\face_con.bmp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </Image>
+    <Image Include="res\face_con.ico" />
+    <Image Include="res\face_exp.bmp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </Image>
+    <Image Include="res\face_exp.ico" />
+    <Image Include="res\face_pla.bmp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </Image>
+    <Image Include="res\face_pla.ico" />
+    <Image Include="res\face_spl.bmp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </Image>
+    <Image Include="res\face_spl.ico" />
+    <Image Include="res\face_tri.bmp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </Image>
+    <Image Include="res\face_tri.ico" />
+    <Image Include="res\ico00001.ico" />
+    <Image Include="res\ico00002.ico" />
+    <Image Include="res\ico00003.ico" />
+    <Image Include="res\ico00004.ico" />
+    <Image Include="res\ico00005.ico" />
+    <Image Include="res\ico00006.ico" />
+    <Image Include="res\ico00007.ico" />
+    <Image Include="res\ico00008.ico" />
+    <Image Include="res\ico00009.ico" />
+    <Image Include="res\ico00010.ico" />
+    <Image Include="res\ico00011.ico" />
+    <Image Include="res\ico00012.ico" />
+    <Image Include="res\ico00013.ico" />
+    <Image Include="res\ico00014.ico" />
+    <Image Include="res\ico00015.ico" />
+    <Image Include="res\ico00016.ico" />
+    <Image Include="res\ico00017.ico" />
+    <Image Include="res\ico00018.ico" />
+    <Image Include="res\ico00019.ico" />
+    <Image Include="res\ico00020.ico" />
+    <Image Include="res\ico00021.ico" />
+    <Image Include="res\ico00022.ico" />
+    <Image Include="res\ico00023.ico" />
+    <Image Include="res\ico00024.ico" />
+    <Image Include="res\ico00025.ico" />
+    <Image Include="res\ico00026.ico" />
+    <Image Include="res\ico00027.ico" />
+    <Image Include="res\ico00028.ico" />
+    <Image Include="res\ico00029.ico" />
+    <Image Include="res\ico00030.ico" />
+    <Image Include="res\ico00031.ico" />
+    <Image Include="res\icon1.ico" />
+    <Image Include="res\icon2.ico" />
+    <Image Include="res\left.ico" />
+    <Image Include="res\modify_b.bmp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </Image>
+    <Image Include="res\modify_b.ico" />
+    <Image Include="res\modify_e.bmp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </Image>
+    <Image Include="res\modify_e.ico" />
+    <Image Include="res\modify_l.bmp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </Image>
+    <Image Include="res\modify_l.ico" />
+    <Image Include="res\modify_s.bmp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </Image>
+    <Image Include="res\modify_s.ico" />
+    <Image Include="res\NewEditor.ico" />
+    <Image Include="res\right.ico" />
+    <Image Include="res\room_con.bmp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </Image>
+    <Image Include="res\room_con.ico" />
+    <Image Include="res\room_exp.bmp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </Image>
+    <Image Include="res\rotatele.ico" />
+    <Image Include="res\rotateri.ico" />
+    <Image Include="res\Toolbar.bmp" />
+    <Image Include="res\up.ico" />
+    <Image Include="res\vertex_r.bmp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </Image>
+    <Image Include="res\vertex_s.bmp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </Image>
+    <Image Include="res\vertex_s.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="res\NewEditor.rc2" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="blah.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\2dlib\2dlib.vcxproj">
+      <Project>{0cb36fbc-d561-413b-af63-7a6d1044e255}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\3d\3d.vcxproj">
+      <Project>{fd64d298-f50d-4e47-b16f-6ef5b6a4b89b}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\bitmap\bitmap.vcxproj">
+      <Project>{a5822541-6293-48f3-a2dd-3d25e7a98f32}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\cfile\cfile.vcxproj">
+      <Project>{a7f7a27d-1aef-4fb2-a68c-d4209c57f640}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\ddgr_win32\ddgr_win32.vcxproj">
+      <Project>{16ceb60f-accc-4176-937b-ef5d5fc82a94}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\ddio_common\ddio_common.vcxproj">
+      <Project>{48dfdaa0-8387-406b-a5d1-eab952fcc1b0}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\ddio_win\ddio_win.vcxproj">
+      <Project>{9c95f2c6-d4f4-4a37-aa74-8a542788473a}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\ddvid_win32\ddvid_win32.vcxproj">
+      <Project>{8d5f2ff7-5e20-4cc1-be4a-98c5817335c3}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\fix\fix.vcxproj">
+      <Project>{597419b1-41fb-4b02-9063-00177f38fff9}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\mem\mem.vcxproj">
+      <Project>{7c968eaa-9953-4bbe-9ccc-b2402f566fd0}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\misc\misc.vcxproj">
+      <Project>{6b43b19b-9d39-4840-ab4d-e3b370343e95}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\module\module.vcxproj">
+      <Project>{db25d6b1-900e-446a-84d9-4152d88ff192}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\ned_physics\ned_physics.vcxproj">
+      <Project>{a6c1ca82-3866-4685-9640-abb4185938e8}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\ned_virtualgcc\ned_virtualgcc.vcxproj">
+      <Project>{a04095dc-35d1-4825-908b-03dfd723890b}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\ned_virtualms\ned_virtualms.vcxproj">
+      <Project>{b30d3cbe-2fd8-4823-bfd8-886272cf189f}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\texmap\texmap.vcxproj">
+      <Project>{152b3e91-ae2d-45bf-a594-c72f5e15bd1b}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\vecmat\vecmat.vcxproj">
+      <Project>{c1365138-a397-4e37-b266-7fa972149b63}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\win32\win32.vcxproj">
+      <Project>{171df446-e2f5-4a66-b8e5-5a50ee808b32}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
