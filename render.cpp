@@ -2924,6 +2924,12 @@ void DrawObjectSelectionBrackets(object *obj,bool front_flag);
 void DrawObject(ddgr_color color,object *obj,bool bDrawOrient);
 #define	PLAYER_COLOR		GR_RGB(   0, 255,   0)		//a player object
 
+void DrawWeaponObject(object *obj) {
+	bool use_effect = false;
+	DrawPolygonModel(&obj->pos,&obj->orient,obj->rtype.pobj_info.model_num,NULL,0,1.0f,
+		1.0f,1.0f,-1,use_effect,0);
+}
+
 // -----------------------------------------------------------------------------
 //	Render an object.  Calls one of several routines based on type
 void RenderObject(object *obj)
@@ -3102,7 +3108,6 @@ void RenderObject(object *obj)
 			break;
 
 		case RT_WEAPON:  
-/*
 			DrawWeaponObject(obj); 
 			
 			#ifdef _DEBUG
@@ -3111,7 +3116,6 @@ void RenderObject(object *obj)
 					DrawDebugInfo(obj);
 				}
 			#endif
-*/
 
 			break;
 		case RT_SPLINTER:

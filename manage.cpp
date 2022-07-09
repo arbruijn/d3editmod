@@ -213,7 +213,7 @@ int LoadTextureImage(char *name, int *pis_ani, int texture_size, int mipped, int
 int mng_FindLoadTexture(char *name, CFILE *cf);
 int mng_FindLoadSound(char *name, CFILE *cf);
 int mng_FindLoadGeneric(char *name, CFILE *cf) { return -1; }
-int mng_FindLoadWeapon(char *name, CFILE *cf) { return -1; }
+int mng_FindLoadWeapon(char *name, CFILE *cf);
 
 typedef struct {
 	char image_filename[PAGENAME_LEN];
@@ -623,7 +623,46 @@ void mng_ReadLightInfoChunk(light_info *light,CFILE *cf) {
 }
 
 int WeaponPageToWeapon(weapon_page *page, int idx, CFILE *cf) {
-	Weapons[idx] = page->item;
+	weapon *w = &Weapons[idx];
+	int handle;
+	char *name;
+	*w = page->item;
+	handle = w->flags & WF_HUD_ANIMATED ?
+		AllocLoadVClip(page->hud_image_name, 0, 0, 0, 0) : bm_AllocLoadFileBitmap(page->hud_image_name, 0, 0);
+	if (handle < 0) {
+		w->hud_image_handle = -1;
+		return 0;
+	}
+	w->hud_image_handle = handle;
+
+	handle = w->flags & WF_IMAGE_BITMAP ? bm_AllocLoadFileBitmap(page->fire_image_model_name, 0, 0) :
+		w->flags & WF_IMAGE_VCLIP ?	AllocLoadVClip(page->fire_image_model_name, 0, 0, 0, 0) :
+		LoadPolyModel(page->fire_image_model_name, 1);
+	if (handle < 0) {
+		w->fire_image_handle = -1;
+		return 0;
+	}
+	w->fire_image_handle = handle;
+
+	w->explode_image_handle = stricmp(name = page->explode_image_name, "INVALID NAME") == 0 || !*name ||
+		(handle = mng_FindLoadTexture(name, cf)) < 0 ? -1 : handle;
+	w->particle_handle = stricmp(name = page->particle_image_name, "INVALID NAME") == 0 || !*name ||
+		(handle = mng_FindLoadTexture(name, cf)) < 0 ? -1 : handle;
+	w->spawn_handle = stricmp(name = page->spawn_weapon_name, "INVALID NAME") == 0 || !*name ||
+		(handle = mng_FindLoadWeapon(name, cf)) < 0 ? -1 : handle;
+	w->alternate_spawn_handle = stricmp(name = page->alt_spawn_weapon_name, "INVALID NAME") == 0 || !*name ||
+		(handle = mng_FindLoadWeapon(name, cf)) < 0 ? -1 : handle;
+	w->robot_spawn_handle = stricmp(name = page->robot_spawn_name, "INVALID NAME") == 0 || !*name ||
+		(handle = mng_FindLoadGeneric(name, cf)) < 0 ? -1 : handle;
+	w->smoke_handle = stricmp(name = page->smoke_image_name, "INVALID NAME") == 0 || !*name ||
+		(handle = mng_FindLoadTexture(name, cf)) < 0 ? -1 : handle;
+	w->scorch_handle = stricmp(name = page->scorch_image_name, "INVALID NAME") == 0 || !*name ||
+		(handle = mng_FindLoadTexture(name, cf)) < 0 ? -1 : handle;
+	w->icon_handle = stricmp(name = page->icon_image_name, "INVALID NAME") == 0 || !*name ||
+		(handle = mng_FindLoadTexture(name, cf)) < 0 ? -1 : handle;
+	for (int i = 0; i < 7; i++)
+		w->sounds[i] = stricmp(name = page->sound_names[i], "INVALID NAME") == 0 || !*name ||
+			(handle = mng_FindLoadSound(name, cf)) < 0 ? 0 : handle;
 	return 1;
 }
 
@@ -723,6 +762,49 @@ void mng_ReadStoreWeapon(CFILE *cf, bool replace) {
 		mng_FreePagetypePrimitives(PAGETYPE_WEAPON, page.item.name, 0);
 		WeaponPageToWeapon(&page, idx, NULL);
 	}
+}
+
+int mng_FindReadWeaponPage(char *name, weapon_page *page, int pos) {
+	int found = 0;
+	CFILE *cf;
+
+	if (cur_table_file_name)
+		cf = cfopen(cur_table_file_name, "rb");
+	else
+		cf = NULL;
+	if (!cf)
+		return 0;
+	if (pos)
+		cfseek(cf, pos, SEEK_SET);
+	while (!cfeof(cf)) {
+		ubyte type = cf_ReadByte(cf);
+		int len = cf_ReadInt(cf);
+		if (type != PAGETYPE_WEAPON) {
+			cfseek(cf, len - 4, SEEK_CUR);
+			continue;
+		}
+		mng_ReadWeaponPage(cf, page);
+		if (strcasecmp(name, page->item.name) == 0) {
+			found = 1;
+			break;
+		}
+	}
+	cfclose(cf);
+	return found;
+}
+
+int mng_FindLoadWeapon(char *name, CFILE *cf) {
+	int idx;
+	weapon_page *page;
+	if ((idx = FindWeaponName(name)) != -1)
+		return idx;
+	page = (weapon_page *)malloc(sizeof(*page));
+	if (!mng_FindReadWeaponPage(name, page, cf ? cf->position : 0))
+		return -1;
+	idx = mng_AddWeapon(page, cf);
+	if (cur_table_num != -1)
+		mng_PushAddonPage(PAGETYPE_WEAPON, page->item.name, 0);
+	return idx;
 }
 
 int DoorPageToDoor(door_page *page, int idx, CFILE *cf) {

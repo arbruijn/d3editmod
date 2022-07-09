@@ -30,6 +30,8 @@
 #include "sounds.h"
 #include "physics.h"
 #include "psrand.h"
+#include "weapon.h"
+#include "vclip.h"
 
 //Misc
 
@@ -684,7 +686,6 @@ int ObjInitViewer(object *objp)
 //Returns 1 if ok, 0 if error
 int ObjInitWeapon(object *objp)
 {
-/*
 	weapon *weap;
 	int ret=1;
 
@@ -770,8 +771,6 @@ int ObjInitWeapon(object *objp)
 	objp->lm_object.used=0;
 	
 	return ret;
-*/
-	return 1;
 }
 
 int ObjInitFireball (object *objp)
@@ -2329,7 +2328,7 @@ bool RotateObjectAroundPoint(object *objp, angle ang_x, angle ang_y, angle ang_z
 void ObjSetPos(object *obj,vector *pos,int roomnum,matrix *orient)
 {
 	int oldroomnum=obj->roomnum;
-	vector old_pos=obj->pos;
+	//vector old_pos=obj->pos;
 
 	//Reset the position & recalculate the AABB
 	obj->pos = *pos;

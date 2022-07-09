@@ -1,0 +1,34 @@
+enum weapon_flags {
+	WF_HUD_ANIMATED		= 1<<0,
+	WF_IMAGE_BITMAP		= 1<<1,	// whether or not the firing image is a bitmap or model
+	WF_SMOKE				= 1<<2,	// Weapon drops smoke as it moves
+	WF_MATTER_WEAPON	= 1<<3,	// This a matter weapon, as opposed to an energy weapon
+	WF_ELECTRICAL		= 1<<4,	// This weapons fires as an electrical storm
+	WF_IMAGE_VCLIP		= 1<<5,	// This weapon fire image is a vclip
+	WF_SPRAY				= 1<<6,	// This weapon is a spray, like a flamethrower
+	WF_STREAMER			= 1<<7,	// This weapon has a streamer effect attached
+	WF_INVISIBLE			= 1<<8,	// This weapon is invisible
+	WF_RING				= 1<<9,	// This weapon is drawn ring style
+	WF_SATURATE			= 1<<10,	// Saturate this bitmap weapon
+	WF_BLAST_RING		= 1<<11,	// Creates a blast ring upon explosion
+	WF_PLANAR_BLAST		= 1<<12,	// Blast bitmap takes on the walls plane
+	WF_PLANAR				= 1<<13,	// This weapon doesn't always face you
+	WF_ENABLE_CAMERA	= 1<<14,	// This weapon can be used for missile camera
+	WF_SPAWNS_IMPACT	= 1<<15,	// This weapon spawns others on impact
+	WF_SPAWNS_TIMEOUT	= 1<<16,	// This weapon spawns others when it times out
+	WF_EXPAND				= 1<<17,	// This weapon expands when exploding
+	WF_MUZZLE				= 1<<18,	// This weapon produces a muzzle flash when fired
+	WF_MICROWAVE			= 1<<19,	// This weapon makes a microwave effect on the victim
+	WF_NAPALM				= 1<<20,	// This weapon does a napalm effect to objects it touches
+	WF_REVERSE_SMOKE	= 1<<21,	// The smoke trail gets smaller as it ages
+	WF_GRAVITY_FIELD	= 1<<22,	// This weapon has a gravity field 
+	WF_COUNTERMEASURE	= 1<<23,	// This weapon is a countermeasure
+	WF_SPAWNS_ROBOT		= 1<<24,	// This weapon spawns a robot upon death
+	WF_FREEZE				= 1<<25,	// This weapon slows a ship/object down
+	WF_TIMEOUT_WALL			= 1<<26,	// This weapon times out like a wall hit
+	WF_PLANAR_SMOKE		= 1<<27,	// This weapon has a planar smoke trail instead of a blob
+	WF_SILENT_HOMING	= 1<<28,	// This weapon does not give a homing lock sound
+	WF_HOMING_SPLIT		= 1<<29,	// This weapon homes when it splits
+	WF_NO_ROTATE			= 1<<30,	// This weapon does not rotate as a bitmap
+	WF_CUSTOM_SIZE		= 1<<31  // This weapon uses a custom size
+};

@@ -16,7 +16,7 @@ OBJS = d3.o ambient.o bnode.o boa.o gamepath.o lightmap_info.o \
 	LoadLevel.o room.o ship.o special_face.o \
 	terrain.o vclip.o door.o levelgoal.o object.o terrainsearch.o \
 	polymodel.o object_lighting.o matcen.o trigger.o renderobject.o render.o postrender.o terrainrender.o \
-	sound.o
+	sound.o weapon.o demo.o diff.o
 # matcen.o postrender.o
 # terrainrender.o terrainsearch.o
 

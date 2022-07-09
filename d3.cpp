@@ -50,6 +50,7 @@ int WinHeight = 480;
 #include "game.h"
 #include "object.h"
 #include "config.h"
+#include "weapon.h"
 
 void initall() {
 	bm_InitBitmaps();
@@ -582,6 +583,7 @@ u32 WindowFlags;
 b32 Running = 1;
 b32 FullScreen = 0;
 bool pressed[1024];
+bool mbpressed[10];
 inline int maplk(int lk) { return (lk & 0x1ff) | (lk & (1<<30) ? 0x200 : 0); }
 void DoControls() {
 	SDL_Event Event;
@@ -605,6 +607,8 @@ void DoControls() {
 				default:
 					break;
 			}
+		} else if (Event.type == SDL_MOUSEBUTTONDOWN || Event.type == SDL_MOUSEBUTTONUP) {
+			mbpressed[Event.button.button] = Event.type == SDL_MOUSEBUTTONDOWN;
 		} else if (Event.type == SDL_QUIT) {
 			Running = 0;
 		} else if (Event.type == SDL_WINDOWEVENT) {
@@ -635,6 +639,8 @@ void DoControls() {
 	//obj->mtype.phys_info.thrust += obj->orient.uvec * ((pressed[maplk(SDLK_KP_ENTER)] ? Frametime : 0) - (pressed[maplk(SDLK_DOWN)] ? Frametime : 0));
 	obj->mtype.phys_info.thrust += obj->orient.uvec * ((pressed[maplk(SDLK_KP_MINUS)] ? Frametime : 0) - (pressed[maplk(SDLK_KP_PLUS)] ? Frametime : 0));
 	//memset(pressed, 0, sizeof(pressed));
+	FireWeaponFromPlayer(obj, 0, pressed[maplk(SDLK_LCTRL)] || mbpressed[SDL_BUTTON_LEFT], 0, 0);
+	FireWeaponFromPlayer(obj, 1, pressed[maplk(SDLK_SPACE)] || mbpressed[SDL_BUTTON_RIGHT], 0, 0);
 }
 
 void DoFrame() {
@@ -644,6 +650,74 @@ void DoFrame() {
 	GameRenderFrame();
 	UpdateFrametime();
 	Gametime += Frametime;
+}
+
+void InitPlayerNewLevel(int playernum)
+{
+	object *obj = Objects + Players[playernum].objnum;
+	if (playernum == Player_num) {
+		if (obj->shields < 100)
+			obj->shields = 100;
+		if (Players[playernum].energy < 100)
+			Players[playernum].energy = 100;
+	}
+	Players[playernum].num_kills_level = 0;
+	Players[playernum].friendly_kills_level = 0;
+	Players[playernum].num_markers = 0;
+	Players[playernum].num_hits_level = 0;
+	Players[playernum].num_discharges_level = 0;
+	Players[playernum].keys = 0;
+	Players[playernum].num_deaths_level = 0;
+}
+
+void InitPlayerNewShip(int playernum) {
+	Players[playernum].energy = 100.0f;
+	Players[playernum].num_balls = 0;
+	Players[playernum].laser_level = 0;
+	Players[playernum].killer_objnum = -1;
+	Players[playernum].light_dist = 0;
+	Players[playernum].oldroom = -1;
+	Players[playernum].guided_obj = NULL;
+	Players[playernum].user_timeout_obj = NULL;
+	Players[playernum].afterburn_time_left = 5.0f;
+	Players[playernum].last_thrust_time = 0;
+	Players[playernum].last_afterburner_time = 0;
+
+	memset(&Players[playernum].weapon_ammo, 0, sizeof(Players[0].weapon_ammo));
+
+	Players[playernum].weapon_flags = 0x100401;
+	Players[playernum].weapon_ammo[10] = 7 - Difficulty_level;
+	Players[playernum].weapon[0].index = 0;
+	Players[playernum].weapon[0].firing_time = 0;
+	Players[playernum].weapon[0].sound_handle = -1;
+	Players[playernum].weapon[1].index = 10;
+	Players[playernum].weapon[1].firing_time = 0;
+	Players[playernum].weapon[1].sound_handle = -1;
+	Players[playernum].small_left_obj = -1;
+	Players[playernum].small_right_obj = -1;
+	Players[playernum].small_dll_obj = -1;
+	Players[playernum].flags = 0;
+	Players[playernum].invulnerable_time = 0;
+	Players[playernum].damage_magnitude = 0;
+	Players[playernum].edrain_magnitude = 0;
+
+	Players[playernum].last_homing_warning_sound_time = 0;
+	Players[playernum].last_hit_wall_sound_time = 0;
+	Players[playernum].multiplayer_flags = 0;
+	Players[playernum].last_multiplayer_flags = 0;
+	Players[playernum].afterburner_mag = 0;
+	Players[playernum].thrust_mag = 0;
+	Players[playernum].last_guided_time = 0;
+	Players[playernum].afterburner_sound_handle = -1;
+	Players[playernum].thruster_sound_state = 0;
+	Players[playernum].thruster_sound_handle = -1;
+	Players[playernum].movement_scalar = 1.0f;
+	Players[playernum].armor_scalar = 1.0f;
+	Players[playernum].damage_scalar = 1.0f;
+	Players[playernum].turn_scalar = 1.0f;
+	Players[playernum].weapon_recharge_scalar = 1.0f;
+	Players[playernum].weapon_speed_scalar = 1.0f;
+	Players[playernum].controller_bitflags = ~0;
 }
 
 void start() {
@@ -667,6 +741,8 @@ void start() {
 		fprintf(stderr, "level missing\n");
 	if (!LoadLevel("level1.d3l"))
 		fprintf(stderr, "loadlevel failed\n");
+	InitPlayerNewShip(0);
+	InitPlayerNewLevel(0);
 
 	#if 0
 	//vector pos = {2047.683105, 276.381744, 2471.472900};int roomnum = 29;
