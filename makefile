@@ -16,7 +16,7 @@ OBJS = d3.o ambient.o bnode.o boa.o gamepath.o lightmap_info.o \
 	LoadLevel.o room.o ship.o special_face.o \
 	terrain.o vclip.o door.o levelgoal.o object.o terrainsearch.o \
 	polymodel.o object_lighting.o matcen.o trigger.o renderobject.o render.o postrender.o terrainrender.o \
-	sound.o weapon.o demo.o diff.o
+	sound.o weapon.o demo.o diff.o player.o pagein.o
 # matcen.o postrender.o
 # terrainrender.o terrainsearch.o
 
@@ -30,7 +30,7 @@ OBJS += bitmap/bitmain.o bitmap/lightmap.o bitmap/bumpmap.o bitmap/iff.o bitmap/
 
 OBJS += vecmat/vector.o fix/fix.o
 
-OBJS += physics/FindIntersection.o physics/physics_common.o physics/physicspoly.o
+OBJS += physics/FindIntersection.o physics/physics_common.o physics/physicspoly.o physics/physics.o
 
 OBJS += misc/endian.o misc/error.o misc/psglob.o misc/psrand.o misc/pstring.o
 

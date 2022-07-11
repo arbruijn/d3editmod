@@ -618,7 +618,7 @@ int GetTextureBitmap (int handle,int framenum,bool force)
 		if (flags & TF_PING_PONG) {
 			frame = ((int)time + framenum) % (num_frames * 2);
 			if (frame >= num_frames)
-				frame = num_frames - (frame - num_frames);
+				frame = num_frames - 1 - (frame - num_frames);
 		} else
 			frame = ((int)time + framenum) % num_frames;
 		bm = GameVClips[bm].frames[frame];

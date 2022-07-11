@@ -4527,7 +4527,7 @@ int SaveLevel(const char *filename, bool f_save_room_AABB)
 
 #endif //ifdef EDITOR
 
-#ifndef NEWEDITORSRC
+#if 1 //ndef NEWEDITORSRC
 
 int need_to_page_in = 0;
 int need_to_page_num = 0;

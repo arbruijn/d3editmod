@@ -51,6 +51,8 @@ int WinHeight = 480;
 #include "object.h"
 #include "config.h"
 #include "weapon.h"
+#include "physics.h"
+#include "pagein.h"
 
 void initall() {
 	bm_InitBitmaps();
@@ -384,7 +386,7 @@ void physics_move(object *obj) {
 
 		//d2_drag(obj, sim_time);
 		//obj->mtype.phys_info.rotvel /= obj->mtype.phys_info.drag * sim_time;
-		obj->mtype.phys_info.rotvel += obj->mtype.phys_info.rotthrust * 60000;
+		obj->mtype.phys_info.rotvel += obj->mtype.phys_info.rotthrust * 1000;
 		if (!VEC_ZERO(&obj->mtype.phys_info.rotvel)) {
 			angvec angs;
 			matrix rotmat, new_orient;
@@ -397,17 +399,24 @@ void physics_move(object *obj) {
 			obj->orient = new_orient;
 			obj->mtype.phys_info.rotvel *= powf(1/obj->mtype.phys_info.drag, sim_time);
 		}
+		#if 0
 		obj->mtype.phys_info.velocity += obj->mtype.phys_info.thrust * 200;
 		vector vel = obj->mtype.phys_info.velocity;
 		obj->mtype.phys_info.velocity *= powf(1/obj->mtype.phys_info.drag, sim_time);
 		new_vel = obj->mtype.phys_info.velocity; // FIXME
 		vector new_pos = *pos;
 		new_pos += vel * sim_time;
+		#else
+		vector new_pos, force = obj->mtype.phys_info.thrust, moved;
+		PhysicsDoSimLinear(obj, &obj->pos, &force, &new_vel, &moved, &new_pos, sim_time, 0);
+		#endif
 		if (!isfinite(new_pos.x) || !isfinite(new_pos.y) || !isfinite(new_pos.z)) {
 			printf("thrust %f %f %f vel %f %f %f new_pos %f %f %f\n", XYZ(&obj->mtype.phys_info.thrust), XYZ(&new_vel), XYZ(&new_pos));
 			new_pos = *pos;
 			new_vel = obj->mtype.phys_info.velocity = {0, 0, 0};
 		}
+		//if (obj->type == OBJ_WEAPON)
+		//	printf("thrust %f %f %f vel %f %f %f new_pos %f %f %f\n", XYZ(&obj->mtype.phys_info.thrust), XYZ(&new_vel), XYZ(&new_pos));
 		obj->mtype.phys_info.rotthrust = {0, 0, 0};
 		obj->mtype.phys_info.thrust = {0, 0, 0};
 
@@ -446,10 +455,15 @@ void physics_move(object *obj) {
 		hitres.hit_velocity = new_vel;
 
 		int hit = fvi_FindIntersection(&q, &hitres, false);
-		//if (obj->type == OBJ_PLAYER)
+		//if (obj->type == OBJ_WEAPON)
 		//	printf("hit %d at %f %f %f %d vel %f %f %f\n", hit, XYZ(&hitres.hit_pnt), hitres.hit_room, XYZ(&hitres.hit_velocity));
-		if (hit)
+		if (hit) {
+			if (obj->type == OBJ_WEAPON)
+				ObjDelete(obj - Objects);
+			else
+				obj->mtype.phys_info.velocity = {0, 0, 0};
 			break;
+		}
 		if (hit) {
 			if (obj->type == OBJ_PLAYER && hitres.num_hits > 1) {
 				hitres.hit_wallnorm[0] = {0, 0, 0};
@@ -574,8 +588,9 @@ void ObjMoveOne(object *obj) {
 }
 
 void ObjDoFrameAll() {
-	for (int i = 0; i < Highest_object_index; i++)
-		ObjMoveOne(&Objects[i]);
+	for (int i = 0; i <= Highest_object_index; i++)
+		if (Objects[i].type != OBJ_NONE)
+			ObjMoveOne(&Objects[i]);
 }
 
 
@@ -587,9 +602,14 @@ bool mbpressed[10];
 inline int maplk(int lk) { return (lk & 0x1ff) | (lk & (1<<30) ? 0x200 : 0); }
 void DoControls() {
 	SDL_Event Event;
+	bool justpressed[1024], justmbpressed[10];
+	memset(justpressed, 0, sizeof(justpressed));
+	memset(justmbpressed, 0, sizeof(justmbpressed));
 	while (SDL_PollEvent(&Event)) {
 		if (Event.type == SDL_KEYDOWN || Event.type == SDL_KEYUP) {
 			pressed[maplk(Event.key.keysym.sym)] = Event.type == SDL_KEYDOWN;
+			if (Event.type == SDL_KEYDOWN)
+				justpressed[maplk(Event.key.keysym.sym)] = 1;
 			//printf("pressed[%d] = %d\n", maplk(Event.key.keysym.sym), Event.type == SDL_KEYDOWN);
 		}
 		if (Event.type == SDL_KEYDOWN) {
@@ -609,6 +629,8 @@ void DoControls() {
 			}
 		} else if (Event.type == SDL_MOUSEBUTTONDOWN || Event.type == SDL_MOUSEBUTTONUP) {
 			mbpressed[Event.button.button] = Event.type == SDL_MOUSEBUTTONDOWN;
+			if (Event.type == SDL_MOUSEBUTTONDOWN)
+				justmbpressed[Event.button.button] = 1;
 		} else if (Event.type == SDL_QUIT) {
 			Running = 0;
 		} else if (Event.type == SDL_WINDOWEVENT) {
@@ -629,15 +651,16 @@ void DoControls() {
 	}
 
 	object *obj = &Objects[0];
-	obj->mtype.phys_info.rotthrust.x = -((pressed[maplk(SDLK_KP_2)] ? Frametime : 0) - (pressed[maplk(SDLK_KP_8)] ? Frametime : 0));
-	obj->mtype.phys_info.rotthrust.y = (pressed[maplk(SDLK_KP_6)] ? Frametime : 0) - (pressed[maplk(SDLK_KP_4)] ? Frametime : 0);
-	obj->mtype.phys_info.rotthrust.z = -((pressed[maplk(SDLK_KP_9)] ? Frametime : 0) - (pressed[maplk(SDLK_KP_7)] ? Frametime : 0));
-	obj->mtype.phys_info.rotthrust.x += -((pressed[maplk(SDLK_DOWN)] ? Frametime : 0) - (pressed[maplk(SDLK_UP)] ? Frametime : 0));
-	obj->mtype.phys_info.rotthrust.y += (pressed[maplk(SDLK_RIGHT)] ? Frametime : 0) - (pressed[maplk(SDLK_LEFT)] ? Frametime : 0);
-	obj->mtype.phys_info.thrust = obj->orient.fvec * ((pressed[maplk(SDLK_a)] ? Frametime : 0) - (pressed[maplk(SDLK_z)] ? Frametime : 0));
-	obj->mtype.phys_info.thrust += obj->orient.rvec * ((pressed[maplk(SDLK_KP_3)] ? Frametime : 0) - (pressed[maplk(SDLK_KP_1)] ? Frametime : 0));
-	//obj->mtype.phys_info.thrust += obj->orient.uvec * ((pressed[maplk(SDLK_KP_ENTER)] ? Frametime : 0) - (pressed[maplk(SDLK_DOWN)] ? Frametime : 0));
-	obj->mtype.phys_info.thrust += obj->orient.uvec * ((pressed[maplk(SDLK_KP_MINUS)] ? Frametime : 0) - (pressed[maplk(SDLK_KP_PLUS)] ? Frametime : 0));
+	float full_thrust = obj->mtype.phys_info.full_thrust;
+	obj->mtype.phys_info.rotthrust.x = -((pressed[maplk(SDLK_KP_2)] ? 1.0f : 0) - (pressed[maplk(SDLK_KP_8)] ? 1.0f : 0));
+	obj->mtype.phys_info.rotthrust.y = (pressed[maplk(SDLK_KP_6)] ? 1.0f : 0) - (pressed[maplk(SDLK_KP_4)] ? 1.0f : 0);
+	obj->mtype.phys_info.rotthrust.z = -((pressed[maplk(SDLK_KP_9)] ? 1.0f : 0) - (pressed[maplk(SDLK_KP_7)] ? 1.0f : 0));
+	obj->mtype.phys_info.rotthrust.x += -((pressed[maplk(SDLK_DOWN)] ? 1.0f : 0) - (pressed[maplk(SDLK_UP)] ? 1.0f : 0));
+	obj->mtype.phys_info.rotthrust.y += (pressed[maplk(SDLK_RIGHT)] ? 1.0f : 0) - (pressed[maplk(SDLK_LEFT)] ? 1.0f : 0);
+	obj->mtype.phys_info.thrust = obj->orient.fvec * ((pressed[maplk(SDLK_a)] ? 1.0f : 0) - (pressed[maplk(SDLK_z)] ? 1.0f : 0)) * full_thrust;
+	obj->mtype.phys_info.thrust += obj->orient.rvec * ((pressed[maplk(SDLK_KP_3)] ? 1.0f : 0) - (pressed[maplk(SDLK_KP_1)] ? 1.0f : 0)) * full_thrust;
+	//obj->mtype.phys_info.thrust += obj->orient.uvec * ((pressed[maplk(SDLK_KP_ENTER)] ? 1.0f : 0) - (pressed[maplk(SDLK_DOWN)] ? 1.0f : 0));
+	obj->mtype.phys_info.thrust += obj->orient.uvec * ((pressed[maplk(SDLK_KP_MINUS)] ? 1.0f : 0) - (pressed[maplk(SDLK_KP_PLUS)] ? 1.0f : 0)) * full_thrust;
 	//memset(pressed, 0, sizeof(pressed));
 	FireWeaponFromPlayer(obj, 0, pressed[maplk(SDLK_LCTRL)] || mbpressed[SDL_BUTTON_LEFT], 0, 0);
 	FireWeaponFromPlayer(obj, 1, pressed[maplk(SDLK_SPACE)] || mbpressed[SDL_BUTTON_RIGHT], 0, 0);
@@ -650,74 +673,6 @@ void DoFrame() {
 	GameRenderFrame();
 	UpdateFrametime();
 	Gametime += Frametime;
-}
-
-void InitPlayerNewLevel(int playernum)
-{
-	object *obj = Objects + Players[playernum].objnum;
-	if (playernum == Player_num) {
-		if (obj->shields < 100)
-			obj->shields = 100;
-		if (Players[playernum].energy < 100)
-			Players[playernum].energy = 100;
-	}
-	Players[playernum].num_kills_level = 0;
-	Players[playernum].friendly_kills_level = 0;
-	Players[playernum].num_markers = 0;
-	Players[playernum].num_hits_level = 0;
-	Players[playernum].num_discharges_level = 0;
-	Players[playernum].keys = 0;
-	Players[playernum].num_deaths_level = 0;
-}
-
-void InitPlayerNewShip(int playernum) {
-	Players[playernum].energy = 100.0f;
-	Players[playernum].num_balls = 0;
-	Players[playernum].laser_level = 0;
-	Players[playernum].killer_objnum = -1;
-	Players[playernum].light_dist = 0;
-	Players[playernum].oldroom = -1;
-	Players[playernum].guided_obj = NULL;
-	Players[playernum].user_timeout_obj = NULL;
-	Players[playernum].afterburn_time_left = 5.0f;
-	Players[playernum].last_thrust_time = 0;
-	Players[playernum].last_afterburner_time = 0;
-
-	memset(&Players[playernum].weapon_ammo, 0, sizeof(Players[0].weapon_ammo));
-
-	Players[playernum].weapon_flags = 0x100401;
-	Players[playernum].weapon_ammo[10] = 7 - Difficulty_level;
-	Players[playernum].weapon[0].index = 0;
-	Players[playernum].weapon[0].firing_time = 0;
-	Players[playernum].weapon[0].sound_handle = -1;
-	Players[playernum].weapon[1].index = 10;
-	Players[playernum].weapon[1].firing_time = 0;
-	Players[playernum].weapon[1].sound_handle = -1;
-	Players[playernum].small_left_obj = -1;
-	Players[playernum].small_right_obj = -1;
-	Players[playernum].small_dll_obj = -1;
-	Players[playernum].flags = 0;
-	Players[playernum].invulnerable_time = 0;
-	Players[playernum].damage_magnitude = 0;
-	Players[playernum].edrain_magnitude = 0;
-
-	Players[playernum].last_homing_warning_sound_time = 0;
-	Players[playernum].last_hit_wall_sound_time = 0;
-	Players[playernum].multiplayer_flags = 0;
-	Players[playernum].last_multiplayer_flags = 0;
-	Players[playernum].afterburner_mag = 0;
-	Players[playernum].thrust_mag = 0;
-	Players[playernum].last_guided_time = 0;
-	Players[playernum].afterburner_sound_handle = -1;
-	Players[playernum].thruster_sound_state = 0;
-	Players[playernum].thruster_sound_handle = -1;
-	Players[playernum].movement_scalar = 1.0f;
-	Players[playernum].armor_scalar = 1.0f;
-	Players[playernum].damage_scalar = 1.0f;
-	Players[playernum].turn_scalar = 1.0f;
-	Players[playernum].weapon_recharge_scalar = 1.0f;
-	Players[playernum].weapon_speed_scalar = 1.0f;
-	Players[playernum].controller_bitflags = ~0;
 }
 
 void start() {
@@ -741,7 +696,10 @@ void start() {
 		fprintf(stderr, "level missing\n");
 	if (!LoadLevel("level1.d3l"))
 		fprintf(stderr, "loadlevel failed\n");
-	InitPlayerNewShip(0);
+
+	PageInAllData();
+
+	InitPlayerNewShip(0, 1);
 	InitPlayerNewLevel(0);
 
 	#if 0

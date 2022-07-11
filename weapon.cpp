@@ -1,3 +1,4 @@
+#include "psrand.h"
 #include "object.h"
 #include "weapon.h"
 #include "player.h"
@@ -102,12 +103,28 @@ void WBFireBattery(object *obj, otype_wb_info *static_wb, int poly_wb_index, int
 	poly_wb_info *pw = Poly_models[obj->rtype.pobj_info.model_num].poly_wb + poly_wb_index;
 	dynamic_wb_info *dyn = obj->dynamic_wb + dynamic_wb_index;
 	int mask = dyn->flags & DWBF_QUAD ? static_wb->gp_quad_fire_mask : static_wb->gp_fire_masks[dyn->cur_firing_mask];
-	for (int i = 0; i < MAX_WB_FIRING_MASKS; i++)
-		if (mask & (1 << i))
-			FireWeaponFromObject(obj, static_wb->gp_weapon_index[0],
+	int num_shots = 0;
+	for (int i = 0; i < MAX_WB_GUNPOINTS; i++)
+		if (mask & (1 << i)) {
+			int wobjnum = FireWeaponFromObject(obj, static_wb->gp_weapon_index[i],
 				pw->gp_index[i],
 				(static_wb->flags & WBF_FIRE_FVEC) != 0,
 				(static_wb->flags & WBF_FIRE_TARGET) != 0);
+			if (wobjnum != -1)
+				num_shots++;
+		}
+	if (!(Game_mode & 0x24) || obj->type != OBJ_PLAYER ||
+		obj->id != Player_num || !(Netgame_flags & NF_PERMISSABLE)) {
+		dyn->last_fire_time = Gametime;
+		if (num_shots > 0 && obj->type == OBJ_PLAYER)
+			Players[obj->id].last_fire_weapon_time = Gametime;
+		if (static_wb->flags & WBF_RANDOM_FIRE_ORDER)
+			dyn->cur_firing_mask = (ps_rand() / 32767.0f) * static_wb->num_masks;
+		else
+			dyn->cur_firing_mask++;
+		if (dyn->cur_firing_mask >= static_wb->num_masks)
+			dyn->cur_firing_mask = 0;
+	}
 }
 
 void DoPermissableWeaponMask(int wb_idx)
