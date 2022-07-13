@@ -53,6 +53,8 @@ int WinHeight = 480;
 #include "weapon.h"
 #include "physics.h"
 #include "pagein.h"
+#include "collide.h"
+#include "scorch.h"
 
 void initall() {
 	bm_InitBitmaps();
@@ -287,7 +289,7 @@ void d2_drag(object *obj, float sim_time) {
 	}
 }
 
-void physics_move(object *obj) {
+void do_physics_sim(object *obj) {
 	fvi_info hitres;
 	Fvi_num_recorded_faces = 0;
 	vector *pos = &obj->pos;
@@ -307,7 +309,7 @@ void physics_move(object *obj) {
 		if (obj->mtype.phys_info.thrust.x || obj->mtype.phys_info.thrust.y || obj->mtype.phys_info.thrust.z ||
 			obj->mtype.phys_info.rotthrust.x || obj->mtype.phys_info.rotthrust.y || obj->mtype.phys_info.rotthrust.z)
 			Players[obj->id].last_thrust_time = Gametime;
-	if (obj->mtype.phys_info.flags & PF_WIGGLE) {
+	if (0 && obj->mtype.phys_info.flags & PF_WIGGLE) {
 		float thrust = vm_GetMagnitude(&obj->mtype.phys_info.thrust);
 		if (thrust > 0.1f)
 			obj->mtype.phys_info.last_still_time += Frametime * 0.5f;
@@ -457,6 +459,17 @@ void physics_move(object *obj) {
 		int hit = fvi_FindIntersection(&q, &hitres, false);
 		//if (obj->type == OBJ_WEAPON)
 		//	printf("hit %d at %f %f %f %d vel %f %f %f\n", hit, XYZ(&hitres.hit_pnt), hitres.hit_room, XYZ(&hitres.hit_velocity));
+
+		if (hit) {
+			switch (hit) {
+				case HIT_WALL:
+					collide_object_with_wall(obj, 0, hitres.hit_room,
+						hitres.hit_face[0], &hitres.hit_pnt, &hitres.hit_wallnorm[0], 0);
+			}
+			if (obj->flags & OF_DEAD)
+				break;
+		}
+
 		if (hit) {
 			if (obj->type == OBJ_WEAPON)
 				ObjDelete(obj - Objects);
@@ -568,7 +581,7 @@ void ObjMoveOne(object *obj) {
 			}
 			break;
 		case MT_PHYSICS:
-			physics_move(obj);
+			do_physics_sim(obj);
 			//obj_moved_trigger_check(obj);
 			break;
 		#if 0
@@ -698,6 +711,7 @@ void start() {
 		fprintf(stderr, "loadlevel failed\n");
 
 	PageInAllData();
+	ResetScorches();
 
 	InitPlayerNewShip(0, 1);
 	InitPlayerNewLevel(0);
@@ -752,6 +766,7 @@ int main(int argc, char **argv) {
 	SDL_GLContext Context = SDL_GL_CreateContext(Window);
 	
 	Detail_settings.Fog_enabled = true;
+	Detail_settings.Scorches_enabled = true;
 
 	initall();
 

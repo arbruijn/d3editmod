@@ -172,3 +172,7 @@ void DeleteTrigger(int roomnum,int facenum)
 
 	DeleteTrigger(tp-Triggers);
 }
+
+void CheckTrigger(int roomnum,int facenum,object *objp,int type)
+{
+}

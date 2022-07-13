@@ -1540,6 +1540,7 @@ object *ObjGet(int handle)
 // Do sound pos updates -- IF VOLUME IS LOW AND NOT FOREVER, THEN STOP SOUND
 // compute echo / reverb
 // indirect/direct path sounds
+#if 0
 void hlsSystem::BeginSoundFrame(bool f_in_game){}
 // Plays the deffered 3d stuff
 hlsSystem::hlsSystem(void){}
@@ -1547,9 +1548,11 @@ void hlsSystem::EndSoundFrame(void){}
 void hlsSystem::StopAllSounds(void){}
 int hlsSystem::Play2dSound(int,float,float,unsigned short){return -1;}
 void hlsSystem::KillSoundLib(bool){}
+#endif
+
 int StreamPlay(char const *,float,int){return -1;}
 // sound_info Sounds[MAX_SOUNDS];
-hlsSystem Sound_system;
+//hlsSystem Sound_system;
 
 #endif
 
@@ -1819,3 +1822,7 @@ ubyte Show_invisible_terrain=0;
 #endif
 
 bool Rendering_main_view=true;
+bool Debug_print_block;
+int Netgame_local_role; // fixme
+int FastCoronas;
+

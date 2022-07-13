@@ -446,10 +446,16 @@ void RenderFloatingTrig(room *rp,face *fp)\
   	}
 }
 
-void RenderScorchmarks(room *rp) {
-}
+extern int Num_scorches_to_render;
+extern ushort Scorches_to_render[MAX_FACES_PER_ROOM];
+extern void RenderScorchesForRoom(room *rp);
 
-int Scorchmark_count = 0;
+#define MAX_LIGHT_GLOW_FACES 100
+struct {
+	short room, face;
+	short unk[12];
+} LightGlowFaces[MAX_LIGHT_GLOW_FACES];
+int LightGlowFaceCount;
 
 short Fog_faces[MAX_FACES_PER_ROOM];
 
@@ -656,6 +662,23 @@ void RenderFace(room *rp,int facenum)
 		(rp->portals[fp->portal_num].flags & PF_RENDER_FACES)) {
 		//Draw the damn thing
 		drawn=g3_DrawPoly(fp->num_verts,pointlist,bm_handle,MAP_TYPE_BITMAP,&face_cc);
+		if (!Render_mirror_for_room) {
+			if (Rendering_main_view && drawn && fp->portal_num == -1 &&
+ 				((fp->flags & FF_CORONA) || FastCoronas) &&
+ 				(fp->flags & FF_LIGHTMAP) && UseHardware &&
+ 				(GameTextures[fp->tmap].flags & TF_LIGHT) &&
+ 				LightGlowFaceCount < MAX_LIGHT_GLOW_FACES) {
+ 				LightGlowFaces[LightGlowFaceCount].room = rp - Rooms;
+ 				LightGlowFaces[LightGlowFaceCount].face = facenum;
+ 				LightGlowFaceCount++;
+			}
+			if (drawn && (fp->flags & FF_SCORCHED)) {
+				if (StateLimited)
+					Scorches_to_render[Num_scorches_to_render++] = facenum;
+				else
+					DrawScorches(rp - Rooms, facenum);
+			}
+		}
 	} else
 		drawn=1;
 
@@ -1207,9 +1230,9 @@ void RenderRoom(room *rp)
 
 	//RenderLightGlowFaces(rp); // add missing function
 
-	if (Scorchmark_count) {
-		RenderScorchmarks(rp);
-		Scorchmark_count = 0;
+	if (Num_scorches_to_render) {
+		RenderScorchesForRoom(rp);
+		Num_scorches_to_render = 0;
 	}
 
 	if (Specular_face_count) {

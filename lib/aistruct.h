@@ -321,6 +321,7 @@ typedef struct notify
 	{
 		int obj_handle;
 		int goal_num;
+		ubyte snd_num;
 	};
 
 	union

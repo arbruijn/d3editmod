@@ -13,6 +13,16 @@
 #include <string.h>
 #include "ssl_lib.h"
 #include "pserror.h"
+#include "args.h"
+#include "globals.h"
+#include "hlsoundlib.h"
+
+struct {
+	float volume, damping, decay;
+} EnvAudio_Presets[N_ENVAUDIO_PRESETS];
+
+bool sound_render_start_frame() { return false; }
+short *sound_render_audible_rooms(pos_state *pos) { return NULL; }
 
 sound_info		Sounds[MAX_SOUNDS];
 sound_file_info SoundFiles[MAX_SOUND_FILES];
@@ -319,7 +329,7 @@ void ned_FreeSound(int slot,bool force_unload)
 }
 #endif
 
-#undef PLAY_SOUND_SYSTEM
+#define PLAY_SOUND_SYSTEM
 
 #ifdef PLAY_SOUND_SYSTEM
 
@@ -329,7 +339,7 @@ void ned_FreeSound(int slot,bool force_unload)
 // copied from main\sndlib\hlsoundlib.cpp
 #include "hlsoundlib.h"
 #include "sounds.h"
-#include "ds3dlib.h"
+//#include "ds3dlib.h"
 #include "streamaudio.h"
 extern float Frametime;
 
@@ -780,5 +790,24 @@ char hlsSystem::GetSoundMixer(void)
 		return SOUND_MIXER_NONE;
 	return (Sound_mixer = m_ll_sound_ptr->GetSoundMixer());
 }
-
+int hlsSystem::Play3dSound(int sound_index, int priority, object *cur_obj, float volume, int flags, float offset) {
+	return -1;
+}
+bool hlsSystem::CheckAndForceSoundDataAlloc(int sound_file_index) {
+	return false;
+}
+void SoundLoadFree(int i) {
+}
+void AudioStream::InitSystem(llsSystem*) {
+}
+void AudioStream::Shutdown() {
+}
+void AudioStream::Frame() {
+}
+bool hlsSystem::Emulate3dSound(int i) {
+	return false;
+}
+bool hlsSystem::ComputePlayInfo(int sound_obj_index, vector *virtual_pos, vector *virtual_vel, float *adjusted_volume) {
+	return false;
+}
 #endif

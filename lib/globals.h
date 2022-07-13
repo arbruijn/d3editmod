@@ -103,6 +103,7 @@ extern int Placed_baseface;
 
 extern float Gametime;
 extern bool Katmai;
+extern int FastCoronas;
 
 #ifdef NEWEDITOR
 // What mode we're currently in
