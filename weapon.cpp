@@ -22,10 +22,6 @@ void ReleaseGuidedMissile(int id) {
 void ReleaseUserTimeoutMissile(int id) {
 }
 
-bool AddHUDMessage(char *msg, ...) {
-	return false;
-}
-
 bool AutoSelectWeapon(int weapon_type, int wpn_idx) {
 	return false;
 }

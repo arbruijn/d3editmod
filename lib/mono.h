@@ -21,7 +21,8 @@ void nw_TCPPrintf(int n, char * format, ... );
 	// Prints a formatted string to the debug window
 	#define mprintf(args) Debug_ConsolePrintf args
 	// Prints a formatted string on window n at row, col.
-	#define mprintf_at(args) Debug_ConsolePrintf args
+	//#define mprintf_at(args) Debug_ConsolePrintf args
+	#define mprintf_at(args)
 	#define DebugBlockPrint(args) do { if(Debug_print_block)mprintf_at((1,5,51,args)); } while (0)
 #else		//ifdef _DEBUG
 #ifndef MACINTOSH

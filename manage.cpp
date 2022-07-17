@@ -1089,7 +1089,7 @@ void mng_ReadStoreGamefile(CFILE *cf, bool replace) {
 
 int GenericPageToGeneric(generic_page *page, int idx, CFILE *cf) {
 	object_info *objinfo = &Object_info[idx];
-	*objinfo = page->item;
+	memcpy(objinfo, &page->item, sizeof(*objinfo) - 3 * sizeof(void *)); // skip ai_info, static_wb, anim ptrs
 	strcpy(objinfo->name, page->item.name);
 	if (objinfo->anim)
 		memcpy(objinfo->anim, page->anim, sizeof(anim_elem) * NUM_MOVEMENT_CLASSES);
@@ -1169,7 +1169,7 @@ int GenericPageToGeneric(generic_page *page, int idx, CFILE *cf) {
 	return 1;
 }
 
-bool GenericIsAll;
+bool Running_editor;
 
 int mng_AddGeneric(generic_page *page, CFILE *cf) {
 	bool f_anim = false, f_weapons = false, f_ai = false;
@@ -1195,7 +1195,7 @@ int mng_AddGeneric(generic_page *page, CFILE *cf) {
 					}
 		}
 	}
-	if (GenericIsAll)
+	if (Running_editor)
 		f_anim = f_weapons = f_ai = true;	
 	int idx = AllocObjectID(page->item.type, f_anim, f_weapons, f_ai);
 	if (idx < 0)

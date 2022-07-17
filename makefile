@@ -2,13 +2,19 @@
 #CC = clang
 #CXXFLAGS += -fsanitize=undefined -fno-sanitize=alignment
 #LDFLAGS += -fsanitize=undefined -fno-sanitize=alignment
-DEF = -Ilib -DLINUX -D__LINUX__ -I. -DMEM_USE_RTL -DSTATIC_OPENGL -DNED_PHYSICS -DNEWEDITORSRC -DMONO
-DEF += -I../gl4es/include
-CXXFLAGS += -m32 -fno-pic -fcf-protection=none
+DEF = -Ilib -DLINUX -D__LINUX__ -I. -DMEM_USE_RTL -DSTATIC_OPENGL -DNEWEDITORSRC -DMONO
+#DEF += -DNED_PHYSICS
+DEF += -I../gl4es/include  -Idllload/emu/include -Idllload
+CXXFLAGS += -m32 -fno-pic -fcf-protection=none -fwrapv
 LDFLAGS += -m32
 CXXFLAGS += -I/usr/include/SDL2 
 CXXFLAGS += -Wall -Wno-unknown-pragmas -Wno-unused-variable -g  -Wno-multichar $(DEF)
 LDLIBS += -lm -lGL -lSDL2 
+
+EMUOBJ = emu/x86emu.o emu/x86run.o emu/x86run66.o emu/x86run660f.o emu/x86run_private.o \
+	emu/x86primop.o emu/x87emu_private.o emu/x87run.o emu/tools/box86stack.o
+DLLOBJ = $(patsubst %,dllload/%,$(EMUOBJ) dll.o)
+CFLAGS = $(CXXFLAGS)
 
 all: d3
 
@@ -16,7 +22,8 @@ OBJS = d3.o ambient.o bnode.o boa.o gamepath.o lightmap_info.o \
 	LoadLevel.o room.o ship.o special_face.o \
 	terrain.o vclip.o door.o levelgoal.o object.o terrainsearch.o \
 	polymodel.o object_lighting.o matcen.o trigger.o renderobject.o render.o postrender.o terrainrender.o \
-	sound.o weapon.o demo.o diff.o player.o pagein.o scorch.o ai.o fireball.o viseffect.o
+	sound.o weapon.o demo.o diff.o player.o pagein.o scorch.o ai.o fireball.o viseffect.o doorway.o \
+	msafe.o $(DLLOBJ) msafeget.o multi.o powerup.o hud.o osiris.o
 # matcen.o postrender.o
 # terrainrender.o terrainsearch.o
 
@@ -49,11 +56,16 @@ d3: $(OBJS)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS)
 
 %.em.o: %.cpp
-	emcc -g -c $(DEF) -o $@ $^
+	emcc -O -sUSE_SDL=2 -g -c $(DEF) -o $@ $^
+%.em.o: %.c
+	emcc -O -sUSE_SDL=2 -g -c $(DEF) -o $@ $^
 #-sGL_UNSAFE_OPTS=0
 # 
 d3.html: $(patsubst %.o,%.em.o,$(OBJS))
-	emcc -g -sFULL_ES2 -L../gl4es/lib -lGL  -sINITIAL_MEMORY=64mb --preload-file d3demo.hog -sUSE_SDL=2  -o $@ $^
+	emcc -O -g -sFULL_ES2  \
+		-L../gl4es/lib \
+		-sINITIAL_MEMORY=64mb --preload-file d3demo.hog -sUSE_SDL=2 -o $@ $^ -lGL
+
 
 clean:
 	rm -f $(OBJS)

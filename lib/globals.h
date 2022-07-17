@@ -562,17 +562,17 @@ void OutrageMessageBox(const char *str, ...) ;
 
 #endif
 
-int osipf_FindSoundName(const char *name);
-int osipf_FindRoomName(const char *name);
-int osipf_FindTriggerName(const char *name);
-int osipf_FindObjectName(const char *name);
+int osipf_FindSoundName(char *name);
+int osipf_FindRoomName(char *name);
+int osipf_FindTriggerName(char *name);
+int osipf_FindObjectName(char *name);
 int osipf_GetTriggerRoom(int trigger_id);
 int osipf_GetTriggerFace(int trigger_id);
-int osipf_FindDoorName(const char *name);
-int osipf_FindTextureName(const char *name);
-int osipf_FindMatcenName(const char *name);
-int osipf_FindPathName(const char *name);
-int osipf_FindLevelGoalName(const char *name);
+int osipf_FindDoorName(char *name);
+int osipf_FindTextureName(char *name);
+int osipf_FindMatcenName(char *name);
+int osipf_FindPathName(char *name);
+int osipf_FindLevelGoalName(char *name);
 
 void ClearTerrainSound();
 

@@ -106,10 +106,10 @@ ubyte Shell_render_flag=0;
 bool Outline_alpha=0;
 bool Outline_lightmaps=0;
 bool Render_floating_triggers=0;
-bool Use_software_zbuffer=1;
+bool Use_software_zbuffer=0;
 bool Lighting_on = 0;
 bool Render_all_external_rooms=0;
-bool In_editor_mode=1;
+bool In_editor_mode=0;
 bool Render_one_room_only=0;
 bool Render_inside_only=0;
 bool Render_flat_shaded=0;
@@ -2279,7 +2279,7 @@ void RenderMine(int viewer_roomnum,int flag_automap,int called_from_terrain
 	bool render_all = false;	
 #endif
 
-#ifndef Outline_mode
+#if defined(EDITOR) && !defined(Outline_mode)
 	if (outline)
 	{
 		Outline_mode |= OM_ON;
@@ -2340,9 +2340,15 @@ void RenderMine(int viewer_roomnum,int flag_automap,int called_from_terrain
 
 
 		g3_SetFarClipZ (VisibleTerrainZ);
+		//g3_ResetFarClipZ();
 		
-		rend_SetZValues(0,5000);
-		
+		if (Terrain_sky.flags & TF_FOG) {
+			rend_SetZValues(0,VisibleTerrainZ);
+			rend_SetFogState(1);
+			rend_SetFogBorders(VisibleTerrainZ * 0.85,VisibleTerrainZ);
+			rend_SetFogColor(Terrain_sky.fog_color);
+		} else
+			rend_SetZValues(0,5000);
 	}
 	}
 
@@ -2555,7 +2561,7 @@ void RenderFogFaces (room *rp)
 			g3_SetTriangulationTest(1);
 		g3_DrawPoly(fp->num_verts,pointlist,0,0,NULL);
 		if (fp->flags & FF_TRIANGULATED)
-			g3_SetTriangulationTest(1);
+			g3_SetTriangulationTest(0);
 	}
 	rend_SetZBufferWriteMask (1);
 }
@@ -3066,6 +3072,7 @@ void RenderObject(object *obj)
 			}
 			#endif
 
+			#ifdef NEWEDITOR
 			// This is only until I implement ship paging -G
 			if (obj->type == OBJ_PLAYER)
 			{
@@ -3086,18 +3093,18 @@ void RenderObject(object *obj)
 				}
 */
 			}
-/*
+			#endif
+
 			if(obj->rtype.pobj_info.anim_frame || (Poly_models[obj->rtype.pobj_info.model_num].frame_max != Poly_models[obj->rtype.pobj_info.model_num].frame_min))
 			{
+				float normalized_time[MAX_SUBOBJECTS];
 				SetNormalizedTimeObj(obj, normalized_time);
 				RenderObject_DrawPolymodel (obj,normalized_time);
 			}
 			else
 			{
-*/
-			if (obj->type != OBJ_PLAYER)
 				RenderObject_DrawPolymodel (obj,NULL);
-//			}
+			}
 
 /*
 			#ifdef _DEBUG

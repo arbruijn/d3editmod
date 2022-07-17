@@ -1,0 +1,10 @@
+*~
+*.o
+myld
+*.dll
+*.exe
+.gdb_history
+myld.html
+myld.js
+myld.data
+myld.wasm

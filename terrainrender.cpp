@@ -445,7 +445,7 @@ void RenderAllTerrainObjects()
 			obj_count++;
 		}
 	}
-#ifndef NEWEDITORSRC
+
 	for (i=0;i<=Highest_vis_effect_index;i++)
 	{
 		vis_effect *vis=&VisEffects[i];
@@ -484,7 +484,6 @@ void RenderAllTerrainObjects()
 			}
 		}
 	}
-#endif
 	
 	// Sort objects
 	qsort(objs_to_render,obj_count,sizeof(*objs_to_render),(int (*)(const void*,const void*))obj_sort_func);
@@ -670,7 +669,6 @@ void RenderTerrain(ubyte from_mine,int left,int top,int right,int bot)
 	g3_SetFarClipZ (VisibleTerrainZ);
 	//rend_SetZValues (0,VisibleTerrainZ);
 	
-#ifndef NEWEDITORSRC
 	if ((Terrain_sky.flags & TF_FOG) && (UseHardware || (!UseHardware && Lighting_on)))
 	{
 		rend_SetZValues(0,VisibleTerrainZ);
@@ -679,7 +677,6 @@ void RenderTerrain(ubyte from_mine,int left,int top,int right,int bot)
 		rend_SetFogColor(Terrain_sky.fog_color);
 	}
 	else
-#endif
 		rend_SetZValues(0,5000);
 		
 	// And display!

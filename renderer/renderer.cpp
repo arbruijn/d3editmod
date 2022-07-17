@@ -725,3 +725,10 @@ void rend_SetFogState (sbyte on)
 {
 }
 
+void rend_SetFogColor(ddgr_color fogcolor)
+{
+}
+
+void rend_SetFogBorders(float fog_near,float fog_far)
+{
+}

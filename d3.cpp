@@ -55,46 +55,82 @@ int WinHeight = 480;
 #include "pagein.h"
 #include "collide.h"
 #include "scorch.h"
+#include "doorway.h"
+#include "aimain.h"
 
-void initall() {
-	bm_InitBitmaps();
+#include "dll.h"
+#define INCLUDED_FROM_D3
+#include "osiris_common.h"
+bool Osiris_CallEvent(object *obj, int evt, tOSIRISEventInfo *data );
 
+tDetailSettings DetailPresetLow =
+	{ 1280, 25,
+		false, false, true, false, false,
+		false, false, false, false, false,
+		true,
+		0, 0};
+tDetailSettings DetailPresetVHi =
+	{ 1920, 10,
+		true, true, true, true, true,
+		true, true, true, true, true,
+		true,
+		2, 0};
 
-	InitMathTables();
-	InitMatcens();
+void ConfigSetDetailLevel(int level) {
+	Detail_settings = DetailPresetVHi;
+}
 
-	// Initializes the fvi system
-	InitFVI();
+void LoadGameSettings() {
+	ConfigSetDetailLevel(3);
+}
 
-	InitSounds();
-
-	// Initialize the Object/Object_info system
-	InitObjects();
-	InitObjectInfo();
-
-	InitDoors();
-
-	InitShips();
-
-	InitTriggers();
-
+void gr_Init() {
 	// Init our bitmaps (and lightmaps required for LoadLevel). Must be called before InitTextures and InitTerrain
 	bm_InitBitmaps(); // calls lm_InitLightmaps() for us
 
 	// Initializes the Texture system
 	//InitTextures ();
+}
 
-	// Initialize the terrain
-	InitTerrain();
+void InitIOSystems() {
+	LoadGameSettings();
+}
+
+void InitD3Systems1() {
+	InitIOSystems();
+
+	gr_Init();
+
+	// Initialize the Object_info system
+	InitObjectInfo();
 
 	// initialize lighting systems
 	InitLightmapInfo();
 	InitSpecialFaces();
 	//InitDynamicLighting();
 
-	// Set z-buffer state
-	//tex_SetZBufferState (Use_software_zbuffer);
-	//State_changed = 1;
+	InitShips();
+
+	// Initializes the fvi system
+	InitFVI();
+
+	InitMatcens();
+
+	InitMathTables();
+
+	// Initialize the terrain
+	InitTerrain();
+
+	InitSounds();
+
+	InitDoors();
+}
+
+void InitD3Systems2() {
+	// Systems2
+
+	InitObjects();
+	InitTriggers();
 }
 
 #if 0
@@ -234,17 +270,31 @@ void UpdateFrametime() {
 	cur_time = t;
 }
 
-void GameRenderFrame() {
-	Viewer_object = &Objects[0];
-	rend_StartFrame(0,0,WinWidth,WinHeight);
-	g3_StartFrame(&Viewer_object->pos,&Viewer_object->orient,Render_zoom);
+void GameRenderWorld(object *viewer,vector *viewer_eye,int viewer_roomnum,matrix *viewer_orient,
+               float zoom,bool rear_view) {
+	g3_StartFrame(viewer_eye,viewer_orient,zoom);
 	Num_fogged_rooms_this_frame = 0;
 	rend_SetZBufferState(1);
 	rend_SetZBufferWriteMask(1);
 	ResetPostrenderList();
-	RenderMine(Viewer_object->roomnum);
-	PostRender(Viewer_object->roomnum);
+	if (viewer_roomnum & ROOMNUM_CELLNUM_FLAG)
+		RenderTerrain(0, -1, -1, -1, -1);
+	else
+		RenderMine(viewer_roomnum);
+	PostRender(viewer_roomnum);
 	g3_EndFrame();
+}
+
+void GameRenderFrame() {
+	object *Player_object = &Objects[Players[Player_num].objnum];
+	Viewer_object = &Objects[0];
+	rend_StartFrame(0,0,WinWidth,WinHeight);
+
+	bool rear = Viewer_object == Player_object &&
+		(Players[Player_num].flags & PLAYER_FLAGS_REARVIEW) != 0;
+	GameRenderWorld(Viewer_object,&Viewer_object->pos,Viewer_object->roomnum,&Viewer_object->orient,
+		Render_zoom, rear);
+
 	rend_EndFrame();
 	SDL_GL_SwapWindow(Window);
 	FrameCount++;
@@ -289,8 +339,23 @@ void d2_drag(object *obj, float sim_time) {
 	}
 }
 
+void collide_two_objects(object *A, object *B,vector *collision_point,vector *collision_normal,fvi_info *hit_info) {
+	tOSIRISEventInfo info;
+	info.evt_collide.it_handle = B->handle;
+	Osiris_CallEvent(A,EVT_COLLIDE,&info);
+	info.evt_collide.it_handle = A->handle;
+	Osiris_CallEvent(B,EVT_COLLIDE,&info);
+	if (A->type == OBJ_WEAPON && B->type == OBJ_ROBOT) {
+		B->shields -= 100;
+		if (B->shields <= 0)
+			B->flags |= OF_DEAD;
+	}
+	if (A->type == OBJ_PLAYER && B->type == OBJ_POWERUP)
+		B->flags |= OF_DEAD;
+}
+
 void do_physics_sim(object *obj) {
-	fvi_info hitres;
+	fvi_info hit_info;
 	Fvi_num_recorded_faces = 0;
 	vector *pos = &obj->pos;
 	int objnum = obj - Objects;
@@ -340,9 +405,9 @@ void do_physics_sim(object *obj) {
 		new_pos += uvec_amp;
 		q.p1 = &new_pos;
 		q.p0 = pos;
-		int hit = fvi_FindIntersection(&q, &hitres, false);
+		int hit = fvi_FindIntersection(&q, &hit_info, false);
 		if (!hit)
-			ObjSetPos(obj, &hitres.hit_pnt, hitres.hit_room, NULL);
+			ObjSetPos(obj, &hit_info.hit_pnt, hit_info.hit_room, NULL);
 	}
 	#define VEC_ALMOST_ZERO(v) (fabsf((v)->x) <= 0.000001f && fabsf((v)->y) <= 0.000001f && fabsf((v)->z) <= 0.000001f)
 	#define VEC_ZERO(v) (!(v)->x && !(v)->y && !(v)->z)
@@ -366,13 +431,13 @@ void do_physics_sim(object *obj) {
 	// FIXME drag vectors
 
 	for (;;) {
-		vector frame_last_pos = *pos;
+		//vector frame_last_pos = *pos;
 		vector frame_last_vel = obj->mtype.phys_info.velocity;
 		matrix frame_last_orient = obj->orient;
 		vector frame_last_rotvel = obj->mtype.phys_info.rotvel;
 		angle frame_last_turnroll = obj->mtype.phys_info.turnroll;
 
-		matrix new_orient = obj->orient;
+		//matrix new_orient = obj->orient;
 		vector new_rotvel = obj->mtype.phys_info.rotvel;
 		vector new_vel = obj->mtype.phys_info.velocity;
 		angle new_turnroll = obj->mtype.phys_info.turnroll;
@@ -451,20 +516,23 @@ void do_physics_sim(object *obj) {
 		q.o_velocity = &frame_last_vel;
 		q.o_turnroll = &frame_last_turnroll;
 		q.o_thrust = &gravity_vec;
-		hitres.hit_turnroll = new_turnroll;
-		//hitres.hit_orient = new_orient;
-		hitres.hit_rotvel = new_rotvel;
-		hitres.hit_velocity = new_vel;
+		hit_info.hit_turnroll = new_turnroll;
+		//hit_info.hit_orient = new_orient;
+		hit_info.hit_rotvel = new_rotvel;
+		hit_info.hit_velocity = new_vel;
 
-		int hit = fvi_FindIntersection(&q, &hitres, false);
+		int hit = fvi_FindIntersection(&q, &hit_info, false);
 		//if (obj->type == OBJ_WEAPON)
-		//	printf("hit %d at %f %f %f %d vel %f %f %f\n", hit, XYZ(&hitres.hit_pnt), hitres.hit_room, XYZ(&hitres.hit_velocity));
+		//	printf("hit %d at %f %f %f %d vel %f %f %f\n", hit, XYZ(&hit_info.hit_pnt), hit_info.hit_room, XYZ(&hit_info.hit_velocity));
 
 		if (hit) {
 			switch (hit) {
 				case HIT_WALL:
-					collide_object_with_wall(obj, 0, hitres.hit_room,
-						hitres.hit_face[0], &hitres.hit_pnt, &hitres.hit_wallnorm[0], 0);
+					collide_object_with_wall(obj, 0, hit_info.hit_room,
+						hit_info.hit_face[0], &hit_info.hit_pnt, &hit_info.hit_wallnorm[0], 0);
+				case HIT_OBJECT:
+				case HIT_SPHERE_2_POLY_OBJECT:
+					collide_two_objects(obj, Objects + hit_info.hit_object[0], hit_info.hit_face_pnt,hit_info.hit_wallnorm,&hit_info);
 			}
 			if (obj->flags & OF_DEAD)
 				break;
@@ -478,24 +546,25 @@ void do_physics_sim(object *obj) {
 			break;
 		}
 		if (hit) {
-			if (obj->type == OBJ_PLAYER && hitres.num_hits > 1) {
-				hitres.hit_wallnorm[0] = {0, 0, 0};
-				for (int i = 0; i < hitres.num_hits; i++)
-					hitres.hit_wallnorm[0] += hitres.hit_wallnorm[i];
+			if (obj->type == OBJ_PLAYER && hit_info.num_hits > 1) {
+				hit_info.hit_wallnorm[0] = {0, 0, 0};
+				for (int i = 0; i < hit_info.num_hits; i++)
+					hit_info.hit_wallnorm[0] += hit_info.hit_wallnorm[i];
 			}
-			vm_NormalizeVector(&hitres.hit_wallnorm[0]);
+			vm_NormalizeVector(&hit_info.hit_wallnorm[0]);
 		}
-		obj->mtype.phys_info.velocity = hitres.hit_velocity;
+		obj->mtype.phys_info.velocity = hit_info.hit_velocity;
 		if (hit == HIT_OUT_OF_TERRAIN_BOUNDS) {
 			obj->flags |= OF_DEAD;
 			break;
 		}
 		obj->last_pos = obj->pos;
-		ObjSetPos(obj, &hitres.hit_pnt, hitres.hit_room, NULL);
+		ObjSetPos(obj, &hit_info.hit_pnt, hit_info.hit_room, NULL);
 		if (!hit) {
 			sim_time = 0;
 		} else {
-			vm_NormalizeVector(&hitres.hit_wallnorm[0]);
+			#if 0
+			vm_NormalizeVector(&hit_info.hit_wallnorm[0]);
 			vector moved = obj->pos;
 			moved -= frame_last_pos;
 			vector moved_dir = moved;
@@ -505,6 +574,7 @@ void do_physics_sim(object *obj) {
 			else
 				moved_dist = vm_NormalizeVector(&moved_dir);
 			//if (hit != HIT_WALL || vm_DotProduct(&moved_dir, ) >= -0.00000100 || !moved_dist)
+			#endif
 		}
 		break;
 	}
@@ -519,9 +589,44 @@ void do_physics_sim(object *obj) {
 	return;
 }
 
-void ObjMoveOne(object *obj) {
+void DoCycledAnim(object *obj)
+{
+	float upd;
+	float duration;
+	float from;
+	float to;
+	anim_elem *anim;
+	float frame;
+	float spc;
+	float time;
+	
+	time = Frametime;
+	if (!(obj->flags & OF_POLYGON_OBJECT))
+		return;
+	anim = Object_info[obj->id].anim;
+	spc = anim->elem[0].spc;
+	from = anim->elem[0].from;
+	to = anim->elem[0].to;
+	if (spc < 0)
+		return;
+	frame = (obj->rtype).pobj_info.anim_frame;
+	if (frame < from || frame > to)
+		obj->rtype.pobj_info.anim_frame = frame = from;
+	duration = to - from;
+	if (duration <= 0.0) {
+		obj->rtype.pobj_info.anim_frame = from;
+	} else {
+		for (upd = (1.0 / (spc / duration)) * time; upd > duration; upd -= duration)
+			;
+		frame += upd;
+		obj->rtype.pobj_info.anim_frame = frame;
+		if (frame >= to)
+			obj->rtype.pobj_info.anim_frame = frame - duration;
+	}
+}
+
+void ObjDoFrame(object *obj) {
 	float saved_Frametime = Frametime;
-	#if 0
 	switch (obj->control_type) {
 		case CT_NONE:
 		case CT_POWERUP:
@@ -529,14 +634,11 @@ void ObjMoveOne(object *obj) {
 		case CT_SOUNDSOURCE:
 			break;
 		case CT_AI:
-			DoAIFrame(obj);
+			AIDoFrame(obj);
 			break;
+		#if 0
 		case CT_EXPLOSION:
 			DoExplosionFrame(obj);
-			break;
-		default:
-			Error("Unknown control type %d in object %i, handle/type/id = %i/%i/%i", obj->control_type,
-						obj-Objects, obj->handle, obj->type, obj->id);
 			break;
 		case CT_FLYING:
 			DoFlyingFrame(obj);
@@ -554,10 +656,19 @@ void ObjMoveOne(object *obj) {
 			DoExplosionFrame(obj);
 			break;
 		case CT_DYING_AND_AI:
-			DoAIFrame(obj);
+			AIDoFrame(obj);
 			DoExplosionFrame(obj);
+		default:
+			Error("Unknown control type %d in object %i, handle/type/id = %i/%i/%i", obj->control_type,
+						obj-Objects, obj->handle, obj->type, obj->id);
+			break;
+		#endif
 	}
-	#endif
+	int ct = obj->control_type, ot = obj->type;
+	if ((ct != CT_AI) && (ct != CT_DYING_AND_AI) && (ct != CT_DEBRIS) &&
+		(ot == OBJ_CLUTTER || ot == OBJ_BUILDING || ot == OBJ_ROBOT || ot == OBJ_POWERUP) &&
+		(ot != OBJ_ROOM) && Object_info[obj->id].anim && Object_info[obj->id].anim->elem[0].to)
+		DoCycledAnim(obj);
 
 	int flags = obj->flags;
 	if (flags & OF_DEAD) {
@@ -600,12 +711,84 @@ void ObjMoveOne(object *obj) {
 	}
 }
 
+
+/* WARNING: Could not reconcile some variable overlaps */
+
+void ObjDeleteDead()
+{
+	tOSIRISEventInfo info;
+	for (int objnum = 0; objnum <= Highest_object_index; objnum++) {
+		object *obj = Objects + objnum;
+		if (obj->type == OBJ_NONE || !(obj->flags & OF_DEAD))
+			continue;
+		#if 0
+		if ((*poVar5 & OF_INFORM_DESTROY_TO_LG) != OF_NONE) {
+			levelgoals::Inform((levelgoals *)&Level_goals,'\x02',0x400,poVar5[2]);
+		}
+		if ((*poVar5 & OF_INPLAYERINVENTORY) != OF_NONE) {
+			InventoryRemoveObject(poVar5[2]);
+		}
+		if (obj->type == OBJ_DUMMY) {
+			ObjUnGhostObject(objnum);
+			if ((Game_mode & 0x24) && Netgame.local_role)
+				MultiSendGhostObject(obj, false);
+		}
+		if (obj->flags & OF_POLYGON_OBJECT) {
+			if (obj->flags & OF_ATTACHED) {
+				info.evt_child_died.it_handle = obj->handle;
+				Osiris_CallEvent(ObjGet(obj->attach_ultimate_handle),EVT_CHILD_DIED,&info);
+			}
+			UnattachFromParent(obj);
+			UnattachChildren(obj);
+		}
+		#endif
+		info.evt_destroy.is_dying = 1;
+		Osiris_CallEvent(obj,EVT_DESTROY,&info);
+		#if 0
+		if ((Game_mode & 0x24) != 0) {
+			DLLInfo[0] = poVar5[2];
+			DLLInfo[1] = DLLInfo[0];
+			CallGameDLL(0x515,(int)DLLInfo);
+		}
+		Osiris_DetachScriptsFromObject(obj);
+		if (((Game_mode & 0x24) != 0) && (Netgame_local_role != 0)) {
+			if ((*poVar5 & OF_SEND_MULTI_REMOVE_ON_DEATH) == OF_NONE) {
+				if ((*poVar5 & OF_SEND_MULTI_REMOVE_ON_DEATHWS) == OF_NONE) goto LAB;
+				uVar7 = 1;
+			}
+			else {
+				uVar7 = 0;
+			}
+			MultiSendRemoveObject(obj,uVar7);
+		}
+		LAB:
+		oVar1 = obj->type;
+		if ((oVar1 == OBJ_ROBOT) &&
+			 ((*(ushort *)((int)poVar5 + -2) == 2 || (*(ushort *)((int)poVar5 + -2) == 0)))) {
+			iVar4 = 0;
+			piVar3 = Buddy_handle;
+			do {
+				if (poVar5[2] == *piVar3) {
+					Buddy_handle[iVar4] = -1;
+					break;
+				}
+				piVar3 = (int *)((uint *)piVar3 + 1);
+				iVar4 = iVar4 + 1;
+			} while ((int)piVar3 < 0x5b6ac8);
+		}
+		#endif
+		if (obj->type != OBJ_PLAYER)
+			ObjDelete(objnum);
+	}
+	//VisEffectDeleteDead();
+}
+
 void ObjDoFrameAll() {
 	for (int i = 0; i <= Highest_object_index; i++)
 		if (Objects[i].type != OBJ_NONE)
-			ObjMoveOne(&Objects[i]);
+			ObjDoFrame(&Objects[i]);
+	ObjDeleteDead();
 }
-
 
 u32 WindowFlags;
 b32 Running = 1;
@@ -681,12 +864,87 @@ void DoControls() {
 
 void DoFrame() {
 	ObjDoFrameAll();
+	DoorwayDoFrame();
 	DoControls();
 
 	GameRenderFrame();
 	UpdateFrametime();
 	Gametime += Frametime;
 }
+
+
+unsigned door_id, door_inst, mod_generic_call;
+unsigned pow_id, pow_inst;
+unsigned level_id, level_inst, mod_level_call;
+int *lvl_obj_handles, *lvl_obj_ids, lvl_obj_count;
+unsigned lvl_obj_insts[500];
+
+void setup_dll() {
+	dll_init();
+	struct dll *mod_generic = dll_load("generic.dll");
+	assert(mod_generic);
+	tOSIRISModuleInit init;
+	extern void osiris_setup(tOSIRISModuleInit *init);
+	osiris_setup(&init);
+	#if 1 // demo
+	init.game_checksum = 0x87888c3b;
+	#endif
+	dllfun_call(dll_find(mod_generic, "_InitializeDLL@4"), 1, (unsigned)&init);
+	door_id = dllfun_call(dll_find(mod_generic, "_GetGOScriptID@8"), 2, (unsigned)"", (unsigned)1);
+	door_inst = dllfun_call(dll_find(mod_generic, "_CreateInstance@4"), 1, (unsigned)door_id);
+	pow_id = dllfun_call(dll_find(mod_generic, "_GetGOScriptID@8"), 2, (unsigned)"", (unsigned)0);
+	pow_inst = dllfun_call(dll_find(mod_generic, "_CreateInstance@4"), 1, (unsigned)pow_id);
+	assert(door_inst);
+	mod_generic_call = dll_find(mod_generic, "_CallInstanceEvent@16");
+	assert(mod_generic_call);
+
+	struct dll *mod_level = dll_load("level1.dll");
+	assert(mod_level);
+	dllfun_call(dll_find(mod_level, "_InitializeDLL@4"), 1, (unsigned)&init);
+	level_id = 0;
+	level_inst = dllfun_call(dll_find(mod_level, "_CreateInstance@4"), 1, (unsigned)level_id);
+	assert(level_inst);
+	lvl_obj_count = dllfun_call(dll_find(mod_level, "_GetCOScriptList@8"), 2, (unsigned)&lvl_obj_handles, (unsigned)&lvl_obj_ids);
+	//switch_id = dllfun_call(dll_find(mod_generic, "_GetGOScriptID@8"), 2, (unsigned)"FirstForcefieldSwi", (unsigned)0);;
+	assert(lvl_obj_count < (int)(sizeof(lvl_obj_insts) / sizeof(lvl_obj_insts[0])));
+	for (int i = 0; i < lvl_obj_count; i++)
+		lvl_obj_insts[i] = dllfun_call(dll_find(mod_level, "_CreateInstance@4"), 1, (unsigned)lvl_obj_ids[i]);
+	mod_level_call = dll_find(mod_generic, "_CallInstanceEvent@16");
+	assert(mod_level_call);
+	tOSIRISEventInfo info;
+	dllfun_call(mod_level_call, 4, level_id, level_inst, EVT_LEVELSTART, (unsigned)&info);
+}
+
+bool Osiris_CallEvent(object *obj, int evt, tOSIRISEventInfo *data) {
+	int handle = obj->handle;
+	if (!handle)
+		return false;
+	data->me_handle = obj->handle;
+	if (obj->type == OBJ_DOOR) {
+		printf("call door %d %x %x %x\n", door_id, door_inst, evt, (unsigned)data);
+		dllfun_call(mod_generic_call, 4, door_id, door_inst, evt, (unsigned)data);
+	}
+	if (obj->type == OBJ_POWERUP) {
+		printf("call powerup %d %x %x %x\n", pow_id, pow_inst, evt, (unsigned)data);
+		dllfun_call(mod_generic_call, 4, pow_id, pow_inst, evt, (unsigned)data);
+	}
+	for (int i = 0; i < lvl_obj_count; i++)
+		if (handle == lvl_obj_handles[i]) {
+			printf("call level object %d %x %x %x\n", lvl_obj_ids[i], lvl_obj_insts[i], evt, (unsigned)data);
+			dllfun_call(mod_level_call, 4, lvl_obj_ids[i], lvl_obj_insts[i], evt, (unsigned)data);
+		}
+	return true;
+}
+
+void DeleteMultiplayerObjects()
+{
+	for (int objnum = 0; objnum <= Highest_object_index; objnum++) {
+		object *obj = Objects + objnum;
+		if (obj->type == OBJ_PLAYER && obj->id != Player_num)
+			ObjDelete(objnum);
+	}
+}
+
 
 void start() {
 	load_game_data(false);
@@ -703,8 +961,7 @@ void start() {
 	//rend_DrawSimpleBitmap(bm, 0, 0);
 	#endif
 
-	int level_lib_id = cf_OpenLibrary("/home/arne/pkg/descent3/missions/d3.mn3");
-	printf("libid %d\n", level_lib_id);
+	//int level_lib_id = cf_OpenLibrary("/home/arne/pkg/descent3/missions/d3.mn3");
 	if (!cfexist("level1.d3l"))
 		fprintf(stderr, "level missing\n");
 	if (!LoadLevel("level1.d3l"))
@@ -712,14 +969,34 @@ void start() {
 
 	PageInAllData();
 	ResetScorches();
+	AIInitAll();
+
+	DeleteMultiplayerObjects();
+	setup_dll();
 
 	InitPlayerNewShip(0, 1);
 	InitPlayerNewLevel(0);
 
-	#if 0
+	#if 1
 	//vector pos = {2047.683105, 276.381744, 2471.472900};int roomnum = 29;
 	//vector pos = {2052.6709, 273.41095, 2126.76294};int roomnum = 34;
-	vector pos = { 2052.465088, 269.267487, 2491.100342};int roomnum= 28;matrix orient = {{0.560977578, 0, -0.816692352}, {0, 1, 0}, {0.816692352, 0, 0.560977578}};
+	//vector pos = { 2052.465088, 269.267487, 2491.100342};int roomnum= 28;matrix orient = {{0.560977578, 0, -0.816692352}, {0, 1, 0}, {0.816692352, 0, 0.560977578}};
+	//vector pos = { 2222.71216, 256.480469, 2636.76367}; int roomnum = 25; matrix orient = {{0.938324869, -0.0623264313, -0.0935816839}, { 0.0657258108, 0.964604557, 0.0356049426}, {0.0954767764, -0.0448376946, 0.925018847}};
+	//vector pos = {2651.24951, 294.042664,  2886.84741};int roomnum=22;matrix orient={{-0.86755532, -0.0819036365, 0.0643768609}, {-0.0717293248,0.903370023,0.084609963}, {-0.0491046086,0.0747872889,0.851385415}};
+	//vector pos = {2649.94922, 290.307281, 2880.80542};int roomnum=22;matrix orient={{0.857007921, 0.0189150218, -0.0619820394}, {-0.0209699292, 0.898529649, 0.219531447}, {0.0542396083, 0.0787136108, -0.810573339}};
+	//vector pos = {2851.79688, 198.613342, 2700.8562};int roomnum=0x8000a8b2;matrix orient={{0.0815096274, -0.00359472446, -0.996666074}, {0.995789409, -0.0417942591, 0.0815886706}, {-0.0419482104, -0.999119759, 0.000172953864}};
+	//vector pos = {2693.27612,263.714294,2850.17114};int roomnum=13;matrix orient={{0.643244863, 0.0142674344, 0.446664929}, {0.068410866, 0.887645841, 0.0422371626}, {0.55027771, -0.12580511, -0.7013008}};
+	//vector pos = {2698.7666, 262.459106, 2843.17456};int roomnum=0x8000b1a8;matrix orient={{0.643244863, 0.0142674344, 0.446664929}, {0.068410866, 0.887645841, 0.0422371626}, {0.55027771, -0.12580511, -0.7013008}};
+	//orient={{0.643244863, 0.0142674344, 0.446664929}, {0.068410866, 0.887645841, 0.0422371626}, {0.55027771, -0.12580511, -0.7013008}}; //fwd
+	//orient={{0.0815096274, -0.00359472446, -0.996666074}, {0.995789409, -0.0417942591, 0.0815886706}, {-0.0419482104, -0.999119759, 0.000172953864}}; //down
+	//vector pos {2683.43311, 263.104706, 2856.13916};int roomnum=13;matrix orient={{0.0815096274, -0.00359472446, -0.996666074}, {0.995789409, -0.0417942591, 0.0815886706}, {-0.0419482104, -0.999119759, 0.000172953864}};
+	//vector pos={2679.35181, 264.636871, 2854.21509};int roomnum=13;matrix orient={{0.755932629, -0.00473004999, -0.521401942}, {0.178152472, 0.840885103, 0.251659811}, {0.446617872, -0.291483104, 0.697822511}};
+	//orient={{0.643244863, 0.0142674344, 0.446664929}, {0.068410866, 0.887645841, 0.0422371626}, {0.55027771, -0.12580511, -0.7013008}}; //fwd
+	vector pos={2647.48535, 291.724976,  2880.74878};int roomnum=22;matrix orient={{ -0.784129441, -0.0412591547, -0.107602321}, {-0.0563592128, 0.895038843, 0.103231899}, {0.133064136, 0.129844069, -0.783052742}};
+
+
+	//extern void msafe_CallFunction(ubyte,msafe_struct*);msafe_struct mstruct; mstruct.roomnum=osipf_FindRoomName("TerrainAccessRoom");mstruct.state=0;mstruct.portalnum=1;mstruct.flags=1;msafe_CallFunction(MSAFE_ROOM_PORTAL_RENDER,&mstruct);
+
 	ObjSetPos(&Objects[0], &pos, roomnum, &orient);
 	#endif
 }
@@ -741,11 +1018,13 @@ EM_BOOL DoFrameEm(double time, void* userData) {
 extern "C" void initialize_gl4es();
 int main(int argc, char **argv) {
 	char hogpath[PSPATHNAME_LEN];
-	bool hogfile_opened = false;
+	//bool hogfile_opened = false;
 	int hog_lib_id;
 
 	#ifdef __EMSCRIPTEN__
 	initialize_gl4es();
+	#endif
+	#if 1
 	ddio_MakePath(hogpath,".","d3demo.hog",NULL);
 	#else
 	ddio_MakePath(hogpath,"/home/arne/pkg/descent3","d3.hog",NULL);
@@ -754,7 +1033,7 @@ int main(int argc, char **argv) {
 	{
 		//RegisterHogFile(hogpath,hog_lib_id);
 		mprintf((0,"Hog file %s opened\n",hogpath));
-		hogfile_opened = true;
+		//hogfile_opened = true;
 	} else {
 		fprintf(stderr, "failed to open %s\n", hogpath);
 		exit(1);
@@ -768,7 +1047,8 @@ int main(int argc, char **argv) {
 	Detail_settings.Fog_enabled = true;
 	Detail_settings.Scorches_enabled = true;
 
-	initall();
+	InitD3Systems1();
+	InitD3Systems2();
 
 	rend_Init (RENDERER_OPENGL, NULL, NULL);
 
@@ -800,6 +1080,11 @@ void Debug_ConsolePrintf( int n, int, int, const char * format, ... ) {
 	va_end(vp);
 }
 
-#define INCLUDED_FROM_D3
-#include "osiris_common.h"
-bool Osiris_CallEvent(object *obj, int event, tOSIRISEventInfo *data ) { return true; }
+#if 0
+#ifdef __EMSCRIPTEN__
+extern "C" void *emscripten_GetProcAddress(const char *name);
+extern "C" void *eglGetProcAddress(const char *name) {
+	return emscripten_GetProcAddress(name);
+}
+#endif
+#endif

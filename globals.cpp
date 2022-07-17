@@ -1324,6 +1324,7 @@ void CGenericOLETarget::DrawText(int x,int y,CWnd *pWnd,char *text)
 // from Main\viseffect.cpp
 
 vis_effect *VisEffects=NULL;//[MAX_VIS_EFFECTS];
+int Highest_vis_effect_index = -1;
 
 // Renders a vis effect
 // (stub)

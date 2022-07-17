@@ -1424,7 +1424,7 @@ bool SetupMineObject(object *obj) {
 					if (g < 0.01) g = 0.01;
 				}
 				if (obj->type == OBJ_PLAYER && (Game_mode & 0x24)) {
-					if (Netgame_flags & NF_BRIGHT_PLAYERS) {
+					if (Netgame.flags & NF_BRIGHT_PLAYERS) {
 						r = g = b = 1;
 					} else {
 						float speedmult = vm_GetMagnitudeFast(&obj->mtype.phys_info.velocity) / 20;
@@ -1485,7 +1485,7 @@ bool SetupTerrainObject(object *obj) {
 			}
 			if (obj->type == OBJ_PLAYER &&
 				((Players[obj->id].flags & PLAYER_FLAGS_HEADLIGHT) ||
-					((Game_mode & 0x24) && (Netgame_flags & NF_BRIGHT_PLAYERS))))
+					((Game_mode & 0x24) && (Netgame.flags & NF_BRIGHT_PLAYERS))))
 				r = g = b = 1;
 		}
 	}

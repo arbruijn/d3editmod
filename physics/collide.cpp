@@ -15,6 +15,7 @@
 //int sound_override_glass_breaking;
 extern bool pressed[1024];
 extern int Netgame_local_role;
+bool Tracking_FVI;
 
 bool collide_generic_and_wall(object * A, float hitspeed, int hitseg, int hitwall, vector * hitpt, vector *wall_normal, float hit_dot) {
 	return false;

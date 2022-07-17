@@ -807,6 +807,8 @@ void AudioStream::Frame() {
 bool hlsSystem::Emulate3dSound(int i) {
 	return false;
 }
+void hlsSystem::StopSoundImmediate(int hlsound_uid) {
+}
 bool hlsSystem::ComputePlayInfo(int sound_obj_index, vector *virtual_pos, vector *virtual_vel, float *adjusted_volume) {
 	return false;
 }
