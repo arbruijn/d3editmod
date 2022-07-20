@@ -21,7 +21,10 @@ extern "C" {
 #include "dll.h"
 
 
+#undef WIN32
 #include "CFILE.H"
+#include "globals.h"
+#define INCLUDED_FROM_D3
 #include "osiris_import.h"
 #if 0
 #define FILE CFILE
@@ -306,18 +309,24 @@ unsigned FindName(unsigned name) {
 	printf("FindName %s\n", (char *)name);
 	return 0;
 }
-unsigned FindObjectName(unsigned name) {
+unsigned Scrpt_FindObjectName(unsigned name) {
 	printf("FindObjectName %s\n", (char *)name);
-	extern int osipf_FindObjectName(char *);
 	return osipf_FindObjectName((char *)name);
 }
-unsigned FindRoomName(unsigned name) {
+unsigned Scrpt_FindRoomName(unsigned name) {
 	printf("FindRoomName %s\n", (char *)name);
-	extern int osipf_FindRoomName(char *);
 	return osipf_FindRoomName((char *)name);
 }
-unsigned Scrpt_GetTriggerFace(unsigned trigger) { return 0; }
-unsigned Scrpt_GetTriggerRoom(unsigned trigger) { return 0; }
+unsigned Scrpt_FindTriggerName(unsigned name) {
+	printf("FindTriggerName %s\n", (char *)name);
+	return osipf_FindTriggerName((char *)name);
+}
+unsigned Scrpt_FindLevelGoalName(unsigned name) {
+	printf("FindLevelGoalName %s\n", (char *)name);
+	return osipf_FindLevelGoalName((char *)name);
+}
+unsigned Scrpt_GetTriggerFace(unsigned trigger) { return osipf_GetTriggerFace(trigger); }
+unsigned Scrpt_GetTriggerRoom(unsigned trigger) { return osipf_GetTriggerRoom(trigger); }
 unsigned Scrpt_CreateTimer(unsigned timer) { return 0; }
 unsigned Cine_StartCanned(unsigned info) { return 0; }
 extern void msafe_CallFunction(ubyte type, msafe_struct *mstruct);
@@ -326,8 +335,8 @@ extern void msafe_DoPowerup(msafe_struct *mstruct);
 extern void osipf_LGoalValue(char action,char type,void *val,int goal,int item);
 union bitfloat { unsigned bit; float f; };
 extern void osipf_ObjectCustomAnim(int objnum,float start,float end,float time,char flags,int sound,char next_type);
-unsigned MSafe_CallFunction(unsigned type, unsigned mstruct) { printf("msafe %d\n", type); msafe_CallFunction(type, (msafe_struct *)mstruct); return 0;}
-unsigned MSafe_GetValue(unsigned type, unsigned mstruct) { printf("mget %d\n", type); msafe_GetValue(type, (msafe_struct *)mstruct); return 0;}
+unsigned MSafe_CallFunction(unsigned type, unsigned mstruct) { msafe_CallFunction(type, (msafe_struct *)mstruct); return 0;}
+unsigned MSafe_GetValue(unsigned type, unsigned mstruct) { msafe_GetValue(type, (msafe_struct *)mstruct); return 0;}
 unsigned MSafe_DoPowerup(unsigned mstruct) { printf("mpowerup\n"); msafe_DoPowerup((msafe_struct *)mstruct); return 0;}
 unsigned LGoal_Value(unsigned act, unsigned type, unsigned val, unsigned goal, unsigned item) { osipf_LGoalValue(act, type, (void *)val, goal, item); return 0; }
 unsigned Obj_SetCustomAnim(unsigned objnum,unsigned start,unsigned end,unsigned time,unsigned flags,unsigned sound,unsigned next_type) {
@@ -417,8 +426,10 @@ struct {
 	{"File_ReadString", 3 | 0x100, .fun3 = File_ReadString},
 	{"File_Close", 1 | 0x100, .fun1 = File_Close},
 	{"FindName", 1 | 0x100, .fun1 = FindName},
-	{"FindObjectName", 1 | 0x100, .fun1 = FindObjectName},
-	{"FindRoomName", 1 | 0x100, .fun1 = FindRoomName},
+	{"Scrpt_FindObjectName", 1 | 0x100, .fun1 = Scrpt_FindObjectName},
+	{"Scrpt_FindRoomName", 1 | 0x100, .fun1 = Scrpt_FindRoomName},
+	{"Scrpt_FindTriggerName", 1 | 0x100, .fun1 = Scrpt_FindTriggerName},
+	{"Scrpt_FindLevelGoalName", 1 | 0x100, .fun1 = Scrpt_FindLevelGoalName},
 	{"Scrpt_GetTriggerFace", 1 | 0x100, .fun1 = Scrpt_GetTriggerFace},
 	{"Scrpt_GetTriggerRoom", 1 | 0x100, .fun1 = Scrpt_GetTriggerRoom},
 	{"Scrpt_CreateTimer", 1 | 0x100, .fun1 = Scrpt_CreateTimer},
@@ -443,10 +454,12 @@ int do_int(x86emu_t *emu, u8 num, unsigned type)
 		int n = EMU_R_AL;
 		unsigned *buf = (unsigned *)EMU_R_ESP;
 		int c = funs[n].args == -1 ? -1 : funs[n].args & 0xff;
+		#ifndef __EMSCRIPTEN__
 		printf("run fun %d %s", n, funs[n].name);
 		for (int i = 0; i < c; i++)
 			printf(" %x", buf[i + 1]);
 		printf("\n");
+		#endif
 		switch (c) {
 			case -1:
 				vprintf((const char *)buf[2], (va_list)&buf[3]);
@@ -805,14 +818,14 @@ void osiris_setup(tOSIRISModuleInit *mod) {
 	mod->File_Open = (File_Open_fp)find_fun("File_Open");
 	mod->File_Close = (File_Close_fp)find_fun("File_Close");
 	mod->File_eof = (File_eof_fp)find_fun("File_eof");
-	mod->Scrpt_FindRoomName  = (Scrpt_FindRoomName_fp)find_fun("FindRoomName");
+	mod->Scrpt_FindRoomName  = (Scrpt_FindRoomName_fp)find_fun("Scrpt_FindRoomName");
 	mod->Scrpt_FindSoundName  = (Scrpt_FindRoomName_fp)find_fun("FindName");
-	mod->Scrpt_FindLevelGoalName  = (Scrpt_FindRoomName_fp)find_fun("FindName");
+	mod->Scrpt_FindLevelGoalName  = (Scrpt_FindRoomName_fp)find_fun("Scrpt_FindLevelGoalName");
 	mod->Scrpt_FindTextureName  = (Scrpt_FindRoomName_fp)find_fun("FindName");
 	mod->Scrpt_FindPathName  = (Scrpt_FindRoomName_fp)find_fun("FindName");
-	mod->Scrpt_FindTriggerName  = (Scrpt_FindRoomName_fp)find_fun("FindName");
+	mod->Scrpt_FindTriggerName  = (Scrpt_FindTriggerName_fp)find_fun("Scrpt_FindTriggerName");
 	mod->Scrpt_FindDoorName  = (Scrpt_FindRoomName_fp)find_fun("FindName");
-	mod->Scrpt_FindObjectName  = (Scrpt_FindRoomName_fp)find_fun("FindObjectName");
+	mod->Scrpt_FindObjectName  = (Scrpt_FindObjectName_fp)find_fun("Scrpt_FindObjectName");
 	mod->Scrpt_FindMatcenName  = (Scrpt_FindRoomName_fp)find_fun("FindName");
 	mod->Scrpt_GetTriggerFace = (Scrpt_GetTriggerFace_fp)find_fun("Scrpt_GetTriggerFace");
 	mod->Scrpt_GetTriggerRoom = (Scrpt_GetTriggerRoom_fp)find_fun("Scrpt_GetTriggerRoom");

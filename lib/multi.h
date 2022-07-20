@@ -15,6 +15,6 @@ void MultiPlay3dSound(int,int, int);
 extern int Demo_flags;
 #define DF_RECORDING 1
 void DemoWrite3DSound(int, int, int);
-extern netplayer NetPlayers[32];
+extern netplayer NetPlayers[MAX_NET_PLAYERS];
 
 #endif

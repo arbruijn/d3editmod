@@ -66,32 +66,32 @@ void grtext_SetFontScale(float scale);
 int grtext_GetFont();
 
 // returns the height of a string in current font.
-int grtext_GetTextHeight(const char *str);
+int grtext_GetTextHeight(char *str);
 #define grtext_GetHeight(_s) grtext_GetTextHeight(_s)
 
 // returns height of text using a font template
-int grtext_GetTextHeightTemplate(tFontTemplate *ft, const char *str);
+int grtext_GetTextHeightTemplate(tFontTemplate *ft, char *str);
 #define grtext_GetHeightTemplate(_t, _s) grtext_GetTextHeightTemplate(_t,_s)
 
 //	returns width of text in current font.
-int grtext_GetTextLineWidth(const char *str);
+int grtext_GetTextLineWidth(char *str);
 #define grtext_GetLineWidth(_s) grtext_GetTextLineWidth(_s)
 
 // returns width of text using a font template
-int grtext_GetTextLineWidthTemplate(const tFontTemplate *ft, const char *str);
+int grtext_GetTextLineWidthTemplate(const tFontTemplate *ft, char *str);
 #define grtext_GetLineWidthTemplate(_t, _s) grtext_GetTextLineWidthTemplate(_t, _s)
 
 //	puts a formatted string in the text buffer
-void grtext_Printf(int x, int y, const char *fmt, ...);
+void grtext_Printf(int x, int y, char *fmt, ...);
 
 //	puts a string on the buffer
-void grtext_Puts(int x, int y, const char *str);
+void grtext_Puts(int x, int y, char *str);
 
 //	puts a character down
 void grtext_PutChar(int x, int y, int ch);
 
 //	puts a centered string in the text buffer.
-void grtext_CenteredPrintf(int xoff, int y, const char *fmt, ...);
+void grtext_CenteredPrintf(int xoff, int y, char *fmt, ...);
 
 //	renders all text in buffer and clears buffer.  USUALLY CALL THIS TO RENDER TEXT
 void grtext_Flush();
@@ -118,7 +118,7 @@ typedef struct tGetCharInfo
 }
 tGetCharInfo;
 
-const char *grtext_GetChar(const char *str, tGetCharInfo *ci);
+char *grtext_GetChar(char *str, tGetCharInfo *ci);
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -185,7 +185,7 @@ ushort *grfont_GetRawCharacterData(int font, int ch, int *w, int *h, bool *mono)
 //EDITING FUNCTIONS ONLY
 
 // sets a template to a font, be careful.
-bool grfont_SetTemplate(const char *pathname, const tFontTemplate *ft);
+bool grfont_SetTemplate(char *pathname, const tFontTemplate *ft);
 
 // sets a font's template without saving...
 bool grfont_SetKerning(int font, ubyte *kern_data);
@@ -239,5 +239,6 @@ typedef struct tFontFileInfo
 #define FT_GRADIENT			8
 #define FT_FMT4444			16
 #define FT_FFI2				32		// all fonts made after D3 should have this flag set.
+#define FT_UPPER			128
 
 #endif

@@ -73,7 +73,7 @@ OSIRISEXTERN Obj_GetTimeLived_fp Obj_GetTimeLived;
 //	void Obj_GetGunPos(int objhandle,int gun_number,vector *gun_pnt,vector *gun_normal);
 //	returns information about a gunpoint of an object
 typedef void( *Obj_GetGunPos_fp)(int objhandle,int gun_number,vector *gun_pnt,vector *gun_normal
-#ifdef __cplusplus
+#ifdef DEF_ARG
 = NULL
 #endif
 );
@@ -82,7 +82,7 @@ OSIRISEXTERN Obj_GetGunPos_fp Obj_GetGunPos;
 //	void Obj_GetGroundPos(int objhandle,int ground_number,vector *ground_pnt,vector *ground_normal);
 //	returns information about a groundpoint of an object
 typedef void( *Obj_GetGroundPos_fp)(int objhandle,int ground_number,vector *ground_pnt,vector *ground_normal
-#ifdef __cplusplus
+#ifdef DEF_ARG
  = NULL
 #endif 
 );
@@ -90,7 +90,7 @@ OSIRISEXTERN Obj_GetGroundPos_fp Obj_GetGroundPos;
 
 //	void Room_Value(int roomnum, char op, char vhandle, void *ptr);
 typedef void( *Room_Value_fp)(int roomnum, char op, char vhandle, void *ptr, int index
-#ifdef __cplusplus
+#ifdef DEF_ARG
  = 0
 #endif
 );
@@ -153,7 +153,7 @@ OSIRISEXTERN AI_GetPathID_fp AI_GetPathID;
 
 //	int AI_GoalFollowPathSimple(int objhandle,int path_id,int guid,int flags);
 typedef int( *AI_GoalFollowPathSimple_fp)(int objhandle,int path_id,int guid,int flags,int slot
-#ifdef __cplusplus
+#ifdef DEF_ARG
  = 3
 #endif 
 );
@@ -169,7 +169,7 @@ OSIRISEXTERN AI_Value_fp AI_Value;
 
 //	void Obj_Value(int objhandle, char op, char vtype, void *ptr);
 typedef void( *Obj_Value_fp)(int objhandle, char op, char vtype, void *ptr, int index
-#ifdef __cplusplus
+#ifdef DEF_ARG
  = 0
 #endif 
 );
@@ -177,7 +177,7 @@ OSIRISEXTERN Obj_Value_fp Obj_Value;
 
 //	void Matcen_Value(int matcen_handle, char op, char vtype, void *ptr, int prod_index = 0);
 typedef void( *Matcen_Value_fp)(int matcen_handle, char op, char vtype, void *ptr, int prod_index
-#ifdef __cplusplus
+#ifdef DEF_ARG
  = 0
 #endif
 );
@@ -209,7 +209,7 @@ OSIRISEXTERN AI_ClearGoal_fp AI_ClearGoal;
 
 //	int AI_FindObjOfType(int objhandle,int type, bool f_ignore_init_room, int parent_handle = OBJECT_HANDLE_NONE);
 typedef int( *AI_FindObjOfType_fp)(int objhandle, int type, int id, bool f_ignore_init_room, int parent_handle
-#ifdef __cplusplus
+#ifdef DEF_ARG
  = OBJECT_HANDLE_NONE
 #endif
 );
@@ -377,15 +377,15 @@ OSIRISEXTERN MSafe_DoPowerup_fp MSafe_DoPowerup;
 
 // int Obj_Create()(ubyte type,ushort id,int roomnum,vector *pos,const matrix *orient,int parent_handle)
 typedef int( *Obj_Create_fp)(ubyte type,ushort id,int roomnum,vector *pos,const matrix *orient
-#ifdef __cplusplus
+#ifdef DEF_ARG
  = NULL
 #endif
 ,int parent_handle
-#ifdef __cplusplus
+#ifdef DEF_ARG
  = OBJECT_HANDLE_NONE
 #endif 
 ,vector *initial_velocity
-#ifdef __cplusplus
+#ifdef DEF_ARG
 =NULL
 #endif;
 );
@@ -401,7 +401,7 @@ OSIRISEXTERN Game_GetFrameTime_fp Game_GetFrameTime;
 
 // void Obj_WBValue() (int obj_handle, char wb_index, char op, char vtype, void *ptr, char g_index)
 typedef void(*Obj_WBValue_fp)(int obj_handle, char wb_index, char op, char vtype, void *ptr, char g_index
-#ifdef __cplusplus
+#ifdef DEF_ARG
  = 0
 #endif 
 );
@@ -435,18 +435,18 @@ typedef int(*Msn_FlagGet_fp)(int flag);
 OSIRISEXTERN Msn_FlagGet_fp Msn_FlagGet;
 
 typedef void(*Player_Value_fp)(int obj_handle, char op, char vhandle, void *ptr, int index
-#ifdef __cplusplus
+#ifdef DEF_ARG
  = 0
 #endif
 );
 OSIRISEXTERN Player_Value_fp Player_Value;
 
 typedef void(*Obj_SetCustomAnim_fp)(int handle, float start, float end, float time, char flags, int sound_handle
-#ifdef __cplusplus
+#ifdef DEF_ARG
  = -1
 #endif
 , char next_anim_type
-#ifdef __cplusplus
+#ifdef DEF_ARG
  = -1
 #endif 
 );
@@ -459,7 +459,7 @@ typedef void(*Obj_Ghost_fp)(int handle, bool f_ghost);
 OSIRISEXTERN Obj_Ghost_fp Obj_Ghost;
 
 typedef void(*Obj_Burning_fp)(int handle, float time, float damage_per_second
-#ifdef __cplusplus
+#ifdef DEF_ARG
  = 1.0f
 #endif
 );
@@ -485,21 +485,21 @@ typedef ubyte (*File_eof_fp)(void *fileptr);
 OSIRISEXTERN File_eof_fp File_eof;
 
 typedef void (*Sound_Stop_fp)(int s_handle, bool f_immediately
-#ifdef __cplusplus
+#ifdef DEF_ARG
  = false
 #endif
 );
 OSIRISEXTERN Sound_Stop_fp Sound_Stop;
 
 typedef int (*Sound_Play2d_fp)(int obj_handle, int s_id, float volume
-#ifdef __cplusplus
+#ifdef DEF_ARG
  = 1.0f
 #endif
 );
 OSIRISEXTERN Sound_Play2d_fp Sound_Play2d;
 
 typedef int (*Sound_Play3d_fp)(int obj_handle, int s_id, float volume
-#ifdef __cplusplus
+#ifdef DEF_ARG
  = 1.0f
 #endif
 );
@@ -515,22 +515,22 @@ typedef bool (*AI_IsObjEnemy_fp)(int obj_handle, int it_handle);
 OSIRISEXTERN AI_IsObjEnemy_fp AI_IsObjEnemy;
 
 typedef bool (*AI_GoalValue_fp)(int obj_handle, char g_index, char op, char vtype, void *ptr, char index
-#ifdef __cplusplus
+#ifdef DEF_ARG
  = 0
 #endif 
 ); 
 OSIRISEXTERN AI_GoalValue_fp AI_GoalValue;
 
 typedef int (*AI_GetNearbyObjs_fp)(vector *pos, int init_roomnum, float rad, int *object_handle_list, int max_elements, bool f_lightmap_only, bool f_only_players_and_ais
-#ifdef __cplusplus
+#ifdef DEF_ARG
  = true
 #endif 
 , bool f_include_non_collide_objects
-#ifdef __cplusplus
+#ifdef DEF_ARG
  = false
 #endif 
 , bool f_stop_at_closed_doors
-#ifdef __cplusplus
+#ifdef DEF_ARG
  = true
 #endif
 );
@@ -618,11 +618,11 @@ typedef int (*Scrpt_FindTextureName_fp)(char *name);
 OSIRISEXTERN Scrpt_FindTextureName_fp Scrpt_FindTextureName;
 
 typedef void (*Game_CreateRandomSparks_fp)(int num_sparks,vector *pos,int roomnum,int which_index
-#ifdef __cplusplus
+#ifdef DEF_ARG
  = -1
 #endif
 ,float force_scalar
-#ifdef __cplusplus
+#ifdef DEF_ARG
  = 1.0f
 #endif 
 );
@@ -646,15 +646,15 @@ OSIRISEXTERN Game_IsShipEnabled_fp Game_IsShipEnabled;
 //	point: which path point
 //returns true if operation was successful
 typedef bool (*Path_GetInformation_fp)(int pathid,int point,vector *pos
-#ifdef __cplusplus
+#ifdef DEF_ARG
 =NULL
 #endif
 ,int *room
-#ifdef __cplusplus
+#ifdef DEF_ARG
 =NULL
 #endif
 ,matrix *orient
-#ifdef __cplusplus
+#ifdef DEF_ARG
 =NULL
 #endif
 );
@@ -674,11 +674,11 @@ typedef int (*Scrpt_FindLevelGoalName_fp)(char *name);
 OSIRISEXTERN Scrpt_FindLevelGoalName_fp Scrpt_FindLevelGoalName;
 
 typedef void (*LGoal_Value_fp)(char op, char vtype, void *ptr, int g_index
-#ifdef __cplusplus
+#ifdef DEF_ARG
  = -1
 #endif 
 , int i_index
-#ifdef __cplusplus
+#ifdef DEF_ARG
  = -1
 #endif
 );
@@ -723,7 +723,7 @@ OSIRISEXTERN Path_Value_fp Path_Value;
 //	osicommon_Initialize
 //	Initializes module's functions
 void osicommon_Initialize(tOSIRISModuleInit *mi);
-#ifdef __cplusplus
+#ifdef DEF_ARG
 #ifndef __OSIRIS_IMPORT_H_
 void osicommon_Initialize(tOSIRISModuleInit *mi)
 {

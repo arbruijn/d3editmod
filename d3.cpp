@@ -57,6 +57,12 @@ int WinHeight = 480;
 #include "scorch.h"
 #include "doorway.h"
 #include "aimain.h"
+#include "osiris_dll.h"
+#include "levelgoal.h"
+#include "multi.h"
+#include "gamefont.h"
+#include "grtext.h"
+#include "hud.h"
 
 #include "dll.h"
 #define INCLUDED_FROM_D3
@@ -84,22 +90,27 @@ void LoadGameSettings() {
 	ConfigSetDetailLevel(3);
 }
 
-void gr_Init() {
+void InitGraphics() {
 	// Init our bitmaps (and lightmaps required for LoadLevel). Must be called before InitTextures and InitTerrain
 	bm_InitBitmaps(); // calls lm_InitLightmaps() for us
 
 	// Initializes the Texture system
 	//InitTextures ();
+
+	LoadAllFonts();
 }
 
 void InitIOSystems() {
 	LoadGameSettings();
 }
 
+extern void InitStringTable();
+
 void InitD3Systems1() {
 	InitIOSystems();
+	InitStringTable();
 
-	gr_Init();
+	InitGraphics();
 
 	// Initialize the Object_info system
 	InitObjectInfo();
@@ -285,17 +296,56 @@ void GameRenderWorld(object *viewer,vector *viewer_eye,int viewer_roomnum,matrix
 	g3_EndFrame();
 }
 
-void GameRenderFrame() {
-	object *Player_object = &Objects[Players[Player_num].objnum];
-	Viewer_object = &Objects[0];
-	rend_StartFrame(0,0,WinWidth,WinHeight);
+void StartFrame(int x1, int y1, int x2, int y2, bool first, bool push)
+{
+	rend_StartFrame(x1, y1, x2, y2);
+	grtext_SetParameters(0, 0, x2 - x1, y2 - y1);
+}
 
+void StartFrame(bool sw_clear)
+{
+	StartFrame(Game_window_x,Game_window_y,Game_window_w + Game_window_x,Game_window_h + Game_window_y,sw_clear,true);
+}
+
+void EndFrame()
+{
+	rend_EndFrame();
+}
+
+void GameDrawMainView()
+{
+	StartFrame(true);
 	bool rear = Viewer_object == Player_object &&
 		(Players[Player_num].flags & PLAYER_FLAGS_REARVIEW) != 0;
 	GameRenderWorld(Viewer_object,&Viewer_object->pos,Viewer_object->roomnum,&Viewer_object->orient,
 		Render_zoom, rear);
+	EndFrame();
+}
 
-	rend_EndFrame();
+void GameDrawHud()
+{
+	StartFrame(false);
+	g3_StartFrame(&Viewer_object->pos,&Viewer_object->orient,0.56);
+	RenderHUDFrame();
+	g3_EndFrame();
+	EndFrame();
+	StartFrame(0,0,Max_window_w,Max_window_h,false,true);
+	g3_StartFrame(&Viewer_object->pos,&Viewer_object->orient,0.56);
+	RenderAuxHUDFrame();
+	g3_EndFrame();
+	EndFrame();
+}
+
+void GameRenderFrame() {
+	object *Player_object = &Objects[Players[Player_num].objnum];
+	Viewer_object = &Objects[0];
+
+	extern void SetScreenSize(int,int);
+	SetScreenSize(WinWidth, WinHeight);
+
+	GameDrawMainView();
+	GameDrawHud();
+
 	SDL_GL_SwapWindow(Window);
 	FrameCount++;
 }
@@ -345,7 +395,7 @@ void collide_two_objects(object *A, object *B,vector *collision_point,vector *co
 	Osiris_CallEvent(A,EVT_COLLIDE,&info);
 	info.evt_collide.it_handle = A->handle;
 	Osiris_CallEvent(B,EVT_COLLIDE,&info);
-	if (A->type == OBJ_WEAPON && B->type == OBJ_ROBOT) {
+	if (A->type == OBJ_WEAPON && B->type == OBJ_ROBOT) { // || B->type == OBJ_CLUTTER)) {
 		B->shields -= 100;
 		if (B->shields <= 0)
 			B->flags |= OF_DEAD;
@@ -625,7 +675,14 @@ void DoCycledAnim(object *obj)
 	}
 }
 
-void ObjDoFrame(object *obj) {
+void ObjCheckTriggers(object *obj)
+{
+	for (int i = 0; i < Fvi_num_recorded_faces; i++)
+		CheckTrigger(Fvi_recorded_faces[i].room_index, Fvi_recorded_faces[i].face_index, obj, TT_PASS_THROUGH);
+}
+
+void ObjDoFrame(object *obj)
+{
 	float saved_Frametime = Frametime;
 	switch (obj->control_type) {
 		case CT_NONE:
@@ -693,12 +750,12 @@ void ObjDoFrame(object *obj) {
 			break;
 		case MT_PHYSICS:
 			do_physics_sim(obj);
-			//obj_moved_trigger_check(obj);
+			ObjCheckTriggers(obj);
 			break;
 		#if 0
 		case MT_WALKING:
 			walking_move(obj);
-			obj_moved_trigger_check(obj);
+			ObjCheckTriggers(obj);
 			break;
 		case MT_SHOCKWAVE:
 			shockwave_move(obj,obj->parent_handle,1.00000000);
@@ -862,8 +919,9 @@ void DoControls() {
 	FireWeaponFromPlayer(obj, 1, pressed[maplk(SDLK_SPACE)] || mbpressed[SDL_BUTTON_RIGHT], 0, 0);
 }
 
-void DoFrame() {
+void GameFrame() {
 	ObjDoFrameAll();
+	Level_goals.DoFrame();
 	DoorwayDoFrame();
 	DoControls();
 
@@ -875,9 +933,14 @@ void DoFrame() {
 
 unsigned door_id, door_inst, mod_generic_call;
 unsigned pow_id, pow_inst;
+
+struct dll *mod_level;
 unsigned level_id, level_inst, mod_level_call;
 int *lvl_obj_handles, *lvl_obj_ids, lvl_obj_count;
 unsigned lvl_obj_insts[500];
+int *lvl_trigger_handles, *lvl_trigger_ids, lvl_trigger_count;
+unsigned lvl_trigger_insts[500];
+int is_demo;
 
 void setup_dll() {
 	dll_init();
@@ -886,9 +949,8 @@ void setup_dll() {
 	tOSIRISModuleInit init;
 	extern void osiris_setup(tOSIRISModuleInit *init);
 	osiris_setup(&init);
-	#if 1 // demo
-	init.game_checksum = 0x87888c3b;
-	#endif
+	if (is_demo)
+		init.game_checksum = 0x87888c3b;
 	dllfun_call(dll_find(mod_generic, "_InitializeDLL@4"), 1, (unsigned)&init);
 	door_id = dllfun_call(dll_find(mod_generic, "_GetGOScriptID@8"), 2, (unsigned)"", (unsigned)1);
 	door_inst = dllfun_call(dll_find(mod_generic, "_CreateInstance@4"), 1, (unsigned)door_id);
@@ -898,7 +960,7 @@ void setup_dll() {
 	mod_generic_call = dll_find(mod_generic, "_CallInstanceEvent@16");
 	assert(mod_generic_call);
 
-	struct dll *mod_level = dll_load("level1.dll");
+	mod_level = dll_load("level1.dll");
 	assert(mod_level);
 	dllfun_call(dll_find(mod_level, "_InitializeDLL@4"), 1, (unsigned)&init);
 	level_id = 0;
@@ -909,10 +971,93 @@ void setup_dll() {
 	assert(lvl_obj_count < (int)(sizeof(lvl_obj_insts) / sizeof(lvl_obj_insts[0])));
 	for (int i = 0; i < lvl_obj_count; i++)
 		lvl_obj_insts[i] = dllfun_call(dll_find(mod_level, "_CreateInstance@4"), 1, (unsigned)lvl_obj_ids[i]);
-	mod_level_call = dll_find(mod_generic, "_CallInstanceEvent@16");
+	mod_level_call = dll_find(mod_level, "_CallInstanceEvent@16");
 	assert(mod_level_call);
+
+	int mod_level_get_trigger = dll_find(mod_level, "_GetTriggerScriptID@8");
+	assert(mod_level_get_trigger);
+	for (int i = 0; i < Num_triggers; i++) {
+		trigger *tp = Triggers + i;
+		tp->osiris_script.script_id = dllfun_call(mod_level_get_trigger, 2, tp->roomnum, tp->facenum);
+		if (tp->osiris_script.script_id >= 0)
+			Triggers[i].osiris_script.script_instance = (void *)dllfun_call(dll_find(mod_level, "_CreateInstance@4"), 1, tp->osiris_script.script_id);
+	}
+
 	tOSIRISEventInfo info;
-	dllfun_call(mod_level_call, 4, level_id, level_inst, EVT_LEVELSTART, (unsigned)&info);
+	Osiris_CallLevelEvent(EVT_LEVELSTART, &info);
+}
+
+int Osiris_create_events_disabled, Osiris_event_mask;
+
+bool Osiris_IsEventEnabled(int evt)
+{
+	if (evt == EVT_CREATED || evt == EVT_AI_INIT)
+		return !Osiris_create_events_disabled;
+	return true;
+}
+
+void Osiris_EnableCreateEvents()
+{
+	Osiris_create_events_disabled = false;
+}
+
+void Osiris_DisableCreateEvents()
+{
+	Osiris_create_events_disabled = true;
+}
+
+bool Osiris_CallLevelEvent(int evt, tOSIRISEventInfo *data) {
+	bool ok;
+	int extra_evt = -1;
+	if (evt == EVT_AI_NOTIFY)
+		switch (((tOSIRISEVTAINOTIFY *)data)->notify_type) {
+			case AIN_GOAL_COMPLETE:
+				extra_evt = EVT_AIN_GOALCOMPLETE;
+				break;
+			case AIN_GOAL_FAIL:
+			case AIN_GOAL_ERROR:
+			case AIN_GOAL_INVALID:
+				extra_evt = EVT_AIN_GOALFAIL;
+		}
+	ok  = dllfun_call(mod_level_call, 4, level_id, level_inst, evt, (unsigned)data) & 1;
+	if (extra_evt != -1)
+		ok  = dllfun_call(mod_level_call, 4, level_id, level_inst, extra_evt, (unsigned)data) & 1;
+	return ok;
+}
+
+bool Osiris_CallTriggerEvent(int handle, int evt, tOSIRISEventInfo *data) {
+	bool ok;
+
+	if ((Game_mode & 0x24) && (Netgame.local_role != 1))
+		return true;
+	if (Osiris_event_mask & 2)
+		return true;
+	if (!Osiris_IsEventEnabled(evt))
+		return true;
+	if (handle < 0 || handle >= Num_triggers)
+		return true;
+	//if (!tOSIRISCurrentLevel.loaded)
+	//	return true;
+
+	int extra_evt = -1;
+	if (evt == EVT_AI_NOTIFY)
+		switch (((tOSIRISEVTAINOTIFY *)data)->notify_type) {
+			case AIN_GOAL_COMPLETE:
+				extra_evt = EVT_AIN_GOALCOMPLETE;
+				break;
+			case AIN_GOAL_FAIL:
+			case AIN_GOAL_ERROR:
+			case AIN_GOAL_INVALID:
+				extra_evt = EVT_AIN_GOALFAIL;
+		}
+	int id = Triggers[handle].osiris_script.script_id;
+	void *instance = Triggers[handle].osiris_script.script_instance;
+	if (!instance)
+		return true;
+	ok  = dllfun_call(mod_level_call, 4, id, (unsigned)instance, evt, (unsigned)data) & 1;
+	if (extra_evt != -1)
+		ok  = dllfun_call(mod_level_call, 4, id, (unsigned)instance, extra_evt, (unsigned)data) & 1;
+	return ok;
 }
 
 bool Osiris_CallEvent(object *obj, int evt, tOSIRISEventInfo *data) {
@@ -961,7 +1106,7 @@ void start() {
 	//rend_DrawSimpleBitmap(bm, 0, 0);
 	#endif
 
-	//int level_lib_id = cf_OpenLibrary("/home/arne/pkg/descent3/missions/d3.mn3");
+	int level_lib_id = !is_demo && cf_OpenLibrary("missions/d3.mn3");
 	if (!cfexist("level1.d3l"))
 		fprintf(stderr, "level missing\n");
 	if (!LoadLevel("level1.d3l"))
@@ -993,6 +1138,8 @@ void start() {
 	//vector pos={2679.35181, 264.636871, 2854.21509};int roomnum=13;matrix orient={{0.755932629, -0.00473004999, -0.521401942}, {0.178152472, 0.840885103, 0.251659811}, {0.446617872, -0.291483104, 0.697822511}};
 	//orient={{0.643244863, 0.0142674344, 0.446664929}, {0.068410866, 0.887645841, 0.0422371626}, {0.55027771, -0.12580511, -0.7013008}}; //fwd
 	vector pos={2647.48535, 291.724976,  2880.74878};int roomnum=22;matrix orient={{ -0.784129441, -0.0412591547, -0.107602321}, {-0.0563592128, 0.895038843, 0.103231899}, {0.133064136, 0.129844069, -0.783052742}};
+	//vector pos = {3679.74658, 178.975937, 2400.09326};int roomnum=88;matrix orient={{ 0.469908446, 0.0153542738,  0.155961797}, {-0.0350852311, 0.630550563, 0.0626305044}, {-0.178150684, -0.0946229398, 0.464835405}};
+
 
 
 	//extern void msafe_CallFunction(ubyte,msafe_struct*);msafe_struct mstruct; mstruct.roomnum=osipf_FindRoomName("TerrainAccessRoom");mstruct.state=0;mstruct.portalnum=1;mstruct.flags=1;msafe_CallFunction(MSAFE_ROOM_PORTAL_RENDER,&mstruct);
@@ -1009,7 +1156,7 @@ EM_BOOL DoFrameEm(double time, void* userData) {
 	if (!started)
 		start(), started = 1;
 	else
-		DoFrame();
+		GameFrame();
 	return Running;
 }
 #endif
@@ -1026,8 +1173,9 @@ int main(int argc, char **argv) {
 	#endif
 	#if 1
 	ddio_MakePath(hogpath,".","d3demo.hog",NULL);
+	is_demo = 1;
 	#else
-	ddio_MakePath(hogpath,"/home/arne/pkg/descent3","d3.hog",NULL);
+	ddio_MakePath(hogpath,".","d3.hog",NULL);
 	#endif
 	if((hog_lib_id = cf_OpenLibrary(hogpath))!=0)
 	{
@@ -1052,6 +1200,9 @@ int main(int argc, char **argv) {
 
 	rend_Init (RENDERER_OPENGL, NULL, NULL);
 
+	extern void SetScreenSize(int,int);
+	SetScreenSize(WinWidth, WinHeight);
+
 	setup_load_screen();
 
 	
@@ -1061,7 +1212,7 @@ int main(int argc, char **argv) {
 	start ();
 	
 	while (Running) {
-		DoFrame();
+		GameFrame();
 	}
 	#endif
 	return 0;

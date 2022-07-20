@@ -29,11 +29,11 @@
 #include "trigger.h"
 #include "player.h"
 //#include "multi.h"
-//#include "demofile.h"
+#include "demofile.h"
 #include "osiris_share.h"
 //#include "multisafe.h"
-//#include "multi.h"
-//#include "multi_world_state.h"
+#include "multi.h"
+#include "multi_world_state.h"
 
 #define GOAL_MESSAGE_TIME		10.0
 #define GOAL_MESSAGE_COLOR		GR_RGB(0,242,148)
@@ -45,7 +45,6 @@ levelgoals Level_goals;
 
 void lgoal::GoalComplete(int handle,bool announce)
 {
-/*
 	m_goal_completed = true;
 
 	tOSIRISEventInfo ei;
@@ -72,7 +71,6 @@ void lgoal::GoalComplete(int handle,bool announce)
 		//Add to the game message buffer
 		AddGameMessage(message);
 	}
-*/
 }
 
 int lgoal::AddItem()
@@ -173,13 +171,11 @@ bool lgoal::SetName(int handle,char *name)
 	strcpy(m_name, name);
 	m_modified = 1;
 
-/*
 	if (Game_mode & GM_MULTI && Netgame.local_role!=LR_CLIENT)
 	{
 		//send it off to the clients
 		SendMultiUpdate(handle);
 	}
-*/
 
 
 	return true;
@@ -239,13 +235,11 @@ bool lgoal::Priority(int handle,char operation, int *value)
 		case LO_SET_SPECIFIED:
 			m_priority = *value;
 			m_modified = 1;
-/*
 			if (Game_mode & GM_MULTI && Netgame.local_role!=LR_CLIENT)
 			{
 				//send it off to the clients
 				SendMultiUpdate(handle);
 			}
-*/
 			return true;
 		break;
 		case LO_GET_SPECIFIED:
@@ -300,13 +294,11 @@ bool lgoal::GetStatus(int handle, char operation, int *value, bool f_save_load,b
 				m_goal_completed = true;
 			}
 
-/*
 			if (Game_mode & GM_MULTI && Netgame.local_role!=LR_CLIENT)
 			{
 				//send it off to the clients
 				SendMultiUpdate(handle);
 			}
-*/
 			return true;
 		break;
 		case LO_GET_SPECIFIED:
@@ -329,13 +321,11 @@ bool lgoal::GetStatus(int handle, char operation, int *value, bool f_save_load,b
 			m_flags &= ~(*value);
 			m_modified = 1;
 
-/*
 			if (Game_mode & GM_MULTI && Netgame.local_role!=LR_CLIENT)
 			{
 				//send it off to the clients
 				SendMultiUpdate(handle);
 			}
-*/
 			return true;
 		break;
 	}
@@ -887,6 +877,7 @@ bool levelgoals::LoadLevelGoalInfo(CFILE *fptr)
 
 	return true;
 }
+
 /*
 int levelgoals::GetCurrentPrimaryGoalIndex()
 {
@@ -916,7 +907,8 @@ int levelgoals::GetCurrentPrimaryGoalIndex()
 	}
 
 	return bestg;
-}*/
+}
+*/
 
 //int m_num_active_primaries = 0;
 //int m_active_primaries[MAX_LEVEL_GOALS];
@@ -1058,14 +1050,13 @@ int levelgoals::GetActiveSecondaryGoal(int s_index)
 
 void levelgoals::DoFrame()
 {
-/*
 	int i;
 
 	// Check for auto-completion
 	for(i = 0; i < m_num_goals; i++)
 	{
 		int flags;
-		m_goal[i].Status(i, LO_GET_SPECIFIED, &flags);
+		m_goal[i].GetStatus(i, LO_GET_SPECIFIED, &flags);
 
 		if(!(flags & (LGF_COMPLETED | LGF_FAILED)))
 		{
@@ -1138,7 +1129,7 @@ void levelgoals::DoFrame()
 				if(f_done)
 				{
 					int flags = LGF_COMPLETED;
-					m_goal[i].Status(i, LO_SET_SPECIFIED, &flags);
+					m_goal[i].GetStatus(i, LO_SET_SPECIFIED, &flags);
 				}
 			}
 		}
@@ -1151,7 +1142,6 @@ void levelgoals::DoFrame()
 		tOSIRISEventInfo ei;
 		Osiris_CallLevelEvent(EVT_ALL_LEVEL_GOALS_COMPLETE, &ei);		
 	}
-*/
 }
 
 void levelgoals::CleanupAfterLevel()
@@ -1260,13 +1250,12 @@ void levelgoals::InitLevel()
 
 void levelgoals::Inform(char type, int comp_type, int handle)
 {
-/*
 	int i, j;
 
 	for(i = 0; i < m_num_goals; i++)
 	{
 		int flags;
-		m_goal[i].Status(i, LO_GET_SPECIFIED, &flags);
+		m_goal[i].GetStatus(i, LO_GET_SPECIFIED, &flags);
 
 		if(!(flags & LGF_ENABLED) && (
 			comp_type == LGF_COMP_ACTIVATE ||
@@ -1317,7 +1306,7 @@ void levelgoals::Inform(char type, int comp_type, int handle)
 			if(f_done)
 			{
 				int flags = LGF_COMPLETED;
-				m_goal[i].Status(i, LO_SET_SPECIFIED, &flags);
+				m_goal[i].GetStatus(i, LO_SET_SPECIFIED, &flags);
 			}
 
 			// Make this after the goal complete is done so that designers can say, if this and not
@@ -1328,7 +1317,6 @@ void levelgoals::Inform(char type, int comp_type, int handle)
 			Osiris_CallLevelEvent(EVT_LEVEL_GOAL_ITEM_COMPLETE, &ei);		
 		}
 	}
-*/
 }
 
 int levelgoals::GoalFindId(char *goal_name)

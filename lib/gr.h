@@ -88,6 +88,8 @@ typedef struct gr_font_file_record
 	ubyte **char_data;				// pointers to each character
 	short *char_widths;				// individual pixel widths of each character
 	unsigned char *kern_data;		// kerning information for specific letter combos
+	float brightness;
+	struct { int tracking; ubyte reserved[32]; } ffi2;
 } gr_font_file_record;
 
 typedef struct gr_font_record 
@@ -96,7 +98,6 @@ typedef struct gr_font_record
 	char filename[32];				// filename of font
 	int references;					// number of references of that font
 	int bmps[MAX_FONT_BITMAPS];	// font bitmap handles
-	grMemorySurface *surfs[MAX_FONT_BITMAPS];
 	ubyte *ch_u, *ch_v, *ch_w, *ch_h, *ch_surf;
 	float *ch_uf, *ch_vf, *ch_wf, *ch_hf;
 	gr_font_file_record font;

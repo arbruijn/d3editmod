@@ -8,7 +8,7 @@ DEF += -I../gl4es/include  -Idllload/emu/include -Idllload
 CXXFLAGS += -m32 -fno-pic -fcf-protection=none -fwrapv
 LDFLAGS += -m32
 CXXFLAGS += -I/usr/include/SDL2 
-CXXFLAGS += -Wall -Wno-unknown-pragmas -Wno-unused-variable -g  -Wno-multichar $(DEF)
+CXXFLAGS += -Wall -Wno-unknown-pragmas -Wno-unused-variable -g  -Wno-multichar -Wno-write-strings $(DEF)
 LDLIBS += -lm -lGL -lSDL2 
 
 EMUOBJ = emu/x86emu.o emu/x86run.o emu/x86run66.o emu/x86run660f.o emu/x86run_private.o \
@@ -22,8 +22,9 @@ OBJS = d3.o ambient.o bnode.o boa.o gamepath.o lightmap_info.o \
 	LoadLevel.o room.o ship.o special_face.o \
 	terrain.o vclip.o door.o levelgoal.o object.o terrainsearch.o \
 	polymodel.o object_lighting.o matcen.o trigger.o renderobject.o render.o postrender.o terrainrender.o \
-	sound.o weapon.o demo.o diff.o player.o pagein.o scorch.o ai.o fireball.o viseffect.o doorway.o \
-	msafe.o $(DLLOBJ) msafeget.o multi.o powerup.o hud.o osiris.o
+	sound.o weapon.o demofile.o diff.o player.o pagein.o scorch.o ai.o fireball.o viseffect.o doorway.o \
+	msafe.o $(DLLOBJ) msafeget.o multi.o powerup.o hud.o osiris.o game.o stringtable.o gamefont.o \
+	grtext/grfont.o grtext/grtext.o
 # matcen.o postrender.o
 # terrainrender.o terrainsearch.o
 

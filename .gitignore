@@ -21,3 +21,5 @@ DEADJOE
 *.user
 *.filters
 *.gch
+missions
+.vscode/

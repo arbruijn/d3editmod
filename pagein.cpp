@@ -21,8 +21,11 @@ ubyte Textures_to_free[MAX_TEXTURES], Sounds_to_free[MAX_SOUNDS], Models_to_free
 
 void PageInGeneric (int id);
 
-void PageInTexture(int id, bool allow_compress)
+void PageInTexture(int tex, bool allow_compress)
 {
+	if (!GameTextures[tex].used)
+		return;
+	bm_data(GameTextures[tex].bm_handle,0); // pages in bitmap
 }
 
 void TouchTexture(int id)

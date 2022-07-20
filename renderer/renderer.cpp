@@ -186,10 +186,10 @@ void rend_DrawFontCharacter (int bm_handle,int x1,int y1,int x2,int y2,float u,f
 
 	for (int i=0;i<4;i++)
 	{
-		pnts[i].p3_l=1;
-		pnts[i].p3_r=rend_FontRed[i];
-		pnts[i].p3_g=rend_FontGreen[i];
-		pnts[i].p3_b=rend_FontBlue[i];
+		//pnts[i].p3_l=1;
+		//pnts[i].p3_r=rend_FontRed[i];
+		//pnts[i].p3_g=rend_FontGreen[i];
+		//pnts[i].p3_b=rend_FontBlue[i];
 		pnts[i].p3_z=1;	// Make REALLY close!
 		pnts[i].p3_flags=PF_PROJECTED;
 	}

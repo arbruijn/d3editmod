@@ -88,6 +88,7 @@ renderer_preferred_state OpenGL_preferred_state={0,1,1.5};
 module *OpenGLDLLHandle=NULL;
 int Already_loaded=0;
 bool opengl_Blending_on;
+extern int WindowGL;
 
 #define GET_WRAP_STATE(x)	(x>>4)
 #define GET_FILTER_STATE(x)	(x & 0x0f)
@@ -976,7 +977,7 @@ int rGL_Init(oeApplication *app,renderer_preferred_state *pref_state)
   	OpenGL_multitexture=rGL_CheckExtension ("GL_ARB_multitexture") || rGL_CheckExtension ("GL_SGIS_multitexture");
   	//#endif
 
-	OpenGL_packed_pixels=0; //rGL_CheckExtension ("GL_EXT_packed_pixels");
+	OpenGL_packed_pixels=0;//rGL_CheckExtension ("GL_EXT_packed_pixels");
 
 	rGL_InitMultitexture();
 	if (FindArg("-NoMultitexture"))
@@ -1011,7 +1012,8 @@ int rGL_Init(oeApplication *app,renderer_preferred_state *pref_state)
 			g=(i>>4) & 0xf;
 			b=i & 0xf;
 
-			a=0xf;
+			if (WindowGL)
+				a=0xf;
 
 			pix=(r<<12) | (g<<8) | (b<<4) | a;
 
@@ -1047,9 +1049,10 @@ int rGL_Init(oeApplication *app,renderer_preferred_state *pref_state)
 			g=(i>>4) & 0xf;
 			b=i & 0xf;
 
-			a=0xf;
+			if (WindowGL)
+				a=0xf;
 		
-			pix=(a<<24) | (b<<16) | (g<<8) | (r);
+			pix=((a*0x11)<<24) | ((b*0x11)<<16) | ((g*0x11)<<8) | (r*0x11);
 
 			opengl_4444_translate_table[i]=pix;
 		}

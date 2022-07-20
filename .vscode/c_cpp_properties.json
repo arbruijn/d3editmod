@@ -5,7 +5,8 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "/usr/include/SDL2",
-                "${workspaceFolder}/lib"
+                "${workspaceFolder}/lib",
+                "${workspaceFolder}"
             ],
             "compilerPath": "/usr/bin/clang",
             "cStandard": "c17",

@@ -1,1 +1,0 @@
-int Demo_flags;

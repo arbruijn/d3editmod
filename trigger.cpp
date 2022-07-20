@@ -14,6 +14,9 @@
 #include "trigger.h"
 #include "globals.h"
 #include "pserror.h"
+#include "levelgoal.h"
+#include "osiris_common.h"
+#include "osiris_dll.h"
 
 
 //The maximum number of triggers that can be in the mine
@@ -173,6 +176,59 @@ void DeleteTrigger(int roomnum,int facenum)
 	DeleteTrigger(tp-Triggers);
 }
 
+
+/* WARNING: Could not reconcile some variable overlaps */
+
 void CheckTrigger(int roomnum,int facenum,object *objp,int type)
 {
+	int handle;
+	ushort activation;
+	trigger *tp;
+	tOSIRISEventInfo info;
+	face *fp;
+	int parent_type;
+
+	fp = Rooms[roomnum].faces + facenum;
+	if (!(fp->flags & FF_HAS_TRIGGER))
+		return;
+	if (!(tp = FindTrigger(roomnum,facenum)))
+		return;
+	if (tp->flags & (TF_DISABLED | TF_DEAD))
+		return;
+	if (fp->portal_num != -1 && type != TT_PASS_THROUGH)
+		return;
+	switch(objp->type) {
+		case OBJ_ROBOT:
+		case OBJ_BUILDING:
+			activation = AF_ROBOT;
+			break;
+		case OBJ_PLAYER:
+			activation = AF_PLAYER;
+			break;
+		case OBJ_WEAPON:
+			parent_type = ObjGetUltimateParent(objp)->type;
+			if (parent_type == OBJ_PLAYER)
+				activation = AF_PLAYER_WEAPON;
+			else if (parent_type == OBJ_ROBOT || parent_type == OBJ_BUILDING)
+				activation = AF_ROBOT_WEAPON;
+			else
+				return;
+			break;
+		case OBJ_CLUTTER:
+			activation = AF_CLUTTER;
+			break;
+		default:
+			return;
+	}
+	if (!(activation & tp->activator))
+		return;
+	info.evt_collide.it_handle = objp->handle;
+	Osiris_CallTriggerEvent(tp - Triggers,EVT_COLLIDE,&info);
+	if (tp->flags & TF_ONESHOT) {
+		 tp->flags |= TF_DEAD;
+		 if (fp->portal_num == -1)
+			fp->flags |= FF_DESTROYED;
+	}
+	if (tp->flags & TF_INFORM_ACTIVATE_TO_LG)
+		Level_goals.Inform(LIT_TRIGGER,LGF_COMP_ACTIVATE,handle);
 }

@@ -167,7 +167,7 @@ void ResetReticle();
 //	adds a persistent hud message that is timed, or infinite until removed
 // for infinite, time = HUD_MSG_PERSISTENT_INFINITE
 // for centering on an axis,set either x or y to HUD_MSG_PERSISTENT_CENTER
-void AddPersistentHUDMessage(ddgr_color color,int x, int y, float time, int flags, int sound_index, const char *fmt, ...);
+void AddPersistentHUDMessage(ddgr_color color,int x, int y, float time, int flags, int sound_index, char *fmt, ...);
 
 // removes persistent hud message
 void ResetPersistentHUDMessage();
@@ -390,7 +390,7 @@ void ToggleHUDMessageConsole();
 
 // resets game message list to no messages
 void ResetGameMessages();
-void AddGameMessage(const char *msg);
+void AddGameMessage(char *msg);
 void SGSGameMessages(CFILE *fp);
 void LGSGameMessages(CFILE *fp);
 

@@ -727,12 +727,13 @@ void FindPlayerStarts()
 
 }
 
+#if 0
 char *GetStringFromTable(int index)
 {
 	static char errstr[] = "No String table!";
 	return errstr;
 }
-
+#endif
 
 // Loads a bsp node from an open file and recurses with its children
 void LoadBSPNode (CFILE *infile,bspnode **node)
@@ -1567,6 +1568,7 @@ float force_field_bounce_multiplier[MAX_FORCE_FIELD_BOUNCE_TEXTURES] = {1.0f, 1.
 
 bool Level_powerups_ignore_wind = false;
 
+#if 0
 void DestroyStringTable(char * *blah,int iblah)
 {
 
@@ -1589,6 +1591,7 @@ int Localization_GetLanguage(void)
 
 	return 1;
 }
+#endif
 
 terrain_sound_band Terrain_sound_bands[NUM_TERRAIN_SOUND_BANDS];
 
