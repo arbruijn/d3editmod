@@ -29,6 +29,8 @@ bool collide_weapon_and_wall
 					(object *weapon,int unused,int roomnum,int facenum,vector *pos,vector *wall_norm,
 					float hit_dot)
 {
+	notify not_info;
+
 	if (stricmp(Weapons[weapon->id].name,"Yellow flare") == 0 &&
 		weapon->parent_handle == Player_object->handle && pressed['\'']) {
 		if ((roomnum & 0x80000000) == 0)
@@ -97,50 +99,47 @@ bool collide_weapon_and_wall
 	}
 	DoWallEffects(weapon,tex);
 	check_for_special_surface((char *)weapon,(int)fVar14,&param_6->x);
-	if ((*(byte *)&weapon->flags & 2) == 0) {
-		if ((((weapon->mtype).num_bounces < 1) && ((*(byte *)&(weapon->mtype).flags & 0x10) == 0)) &&
-			 (fVar14 = (weapon->mtype).hit_die_dot,
-			 (ushort)((ushort)(param_7 < fVar14) << 8 | (ushort)(param_7 == fVar14) << 0xe) == 0)) {
+	#endif
+	if ((weapon->flags & WF_IMAGE_BITMAP) == 0) {
+		if (weapon->mtype.phys_info.num_bounces < 1 &&
+			!(weapon->mtype.phys_info.flags & PF_STICK) &&
+			hit_dot > weapon->mtype.phys_info.hit_die_dot) {
 			not_info.snd_num = 0;
 			not_info.pos.y = 0.9;
 			not_info.pos.z = 0.1;
-			SVar11 = (SoundsEnum)Weapons[weapon->id].sounds[1];
-			if (SVar11 != SOUND_NONE_INDEX) {
-				not_info.pos.x = Sounds[SVar11].max_distance;
-				hlsSystem::Play3dSound((hlsSystem *)&Sound_system,SVar11,2,weapon,1.0,0);
+			int snd = Weapons[weapon->id].sounds[WSI_IMPACT_WALL];
+			if (snd) {
+				not_info.pos.x = Sounds[snd].max_distance;
+				Sound_system.Play3dSound(snd,2,weapon,1.0,0);
 				AINotify(weapon,AIN_HEAR_NOISE,&not_info);
 			}
-			uVar4 = weapon->id;
+			int uVar4 = weapon->id;
+			#if 0
 			if ((((Weapons[uVar4].flags & WF_SPAWNS_IMPACT) != WF_NONE) &&
 					(Weapons[uVar4].spawn_count != '\0')) && (-1 < Weapons[uVar4].spawn_handle)) {
-				CreateImpactSpawnFromWeapon((int)weapon,param_6);
+				CreateImpactSpawnFromWeapon(weapon,param_6);
 			}
 			if ((((Weapons[weapon->id].flags & WF_SPAWNS_ROBOT) != WF_NONE) &&
 					((Weapons[weapon->id].flags & WF_COUNTERMEASURE) != WF_NONE)) &&
 				 (-1 < Weapons[weapon->id].robot_spawn_handle)) {
 				CreateRobotSpewFromWeapon(weapon);
 			}
-			DoWeaponExploded(weapon,param_6,(vector *)0x0,0);
-			weapon->flags = weapon->flags | OF_DEAD;
-			return true;
-		}
-		if (Weapons[weapon->id].sounds[4] != 0) {
-			hlsSystem::Play3dSound
-								((hlsSystem *)&Sound_system,(int)Weapons[weapon->id].sounds[4],3,weapon,1.0,0);
-			if (-1 < Weapons[weapon->id].sounds[4]) {
-				not_info.handle._0_1_ = 0;
+			#endif
+			DoWeaponExploded(weapon,wall_norm,NULL,0);
+			weapon->flags |= OF_DEAD;
+		} else if (Weapons[weapon->id].sounds[WSI_BOUNCE] != 0) {
+			Sound_system.Play3dSound(Weapons[weapon->id].sounds[WSI_BOUNCE],3,weapon,1.0,0);
+			if (-1 < Weapons[weapon->id].sounds[WSI_BOUNCE]) {
+				not_info.snd_num = 0;
 				not_info.pos.y = 0.2;
 				not_info.pos.z = 0.6;
-				not_info.pos.x = Sounds[Weapons[weapon->id].sounds[4]].max_distance;
+				not_info.pos.x = Sounds[Weapons[weapon->id].sounds[WSI_BOUNCE]].max_distance;
 				AINotify(weapon,AIN_HEAR_NOISE,&not_info);
 			}
 		}
 	}
-	#endif
 	return true;
 }
-
-
 
 bool collide_object_with_wall
 					(object *A,float hitspeed,int hitseg,int hitwall,vector *hitpt,vector *wall_normal,

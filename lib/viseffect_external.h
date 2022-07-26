@@ -21,7 +21,7 @@
 #include "pserror.h"
 #include "vecmat.h"
 
-#define MAX_VIS_EFFECTS	4096 //DAJ utb 5000
+#define MAX_VIS_EFFECTS	5000
 
 // types
 #define VIS_NONE			0

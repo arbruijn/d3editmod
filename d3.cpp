@@ -63,6 +63,8 @@ int WinHeight = 480;
 #include "gamefont.h"
 #include "grtext.h"
 #include "hud.h"
+#include "uidraw.h"
+#include "damage.h"
 
 #include "dll.h"
 #define INCLUDED_FROM_D3
@@ -346,6 +348,12 @@ void GameRenderFrame() {
 	GameDrawMainView();
 	GameDrawHud();
 
+	StartFrame(false);
+	ui_DrawSetAlpha(32);
+	ui_DrawRect(GR_WHITE, 0, 0, WinWidth, WinHeight);
+	EndFrame();
+
+
 	SDL_GL_SwapWindow(Window);
 	FrameCount++;
 }
@@ -395,10 +403,15 @@ void collide_two_objects(object *A, object *B,vector *collision_point,vector *co
 	Osiris_CallEvent(A,EVT_COLLIDE,&info);
 	info.evt_collide.it_handle = A->handle;
 	Osiris_CallEvent(B,EVT_COLLIDE,&info);
-	if (A->type == OBJ_WEAPON && B->type == OBJ_ROBOT) { // || B->type == OBJ_CLUTTER)) {
-		B->shields -= 100;
+	if (A->type == OBJ_WEAPON && (IS_GENERIC(B->type) || B->type == OBJ_DOOR)) {
+		weapon *w = Weapons + A->id;
+		int wf = w->flags;
+		int damage_type = wf & WF_NAPALM ? GD_FIRE : wf & WF_MATTER_WEAPON ? GD_MATTER :
+			wf & WF_ELECTRICAL ? GD_ELECTRIC : GD_ENERGY;
+		ApplyDamageToGeneric(B, A, damage_type, w->generic_damage * A->ctype.laser_info.multiplier,0,255);
+		/*B->shields -= 100;
 		if (B->shields <= 0)
-			B->flags |= OF_DEAD;
+			B->flags |= OF_DEAD;*/
 	}
 	if (A->type == OBJ_PLAYER && B->type == OBJ_POWERUP)
 		B->flags |= OF_DEAD;
@@ -481,7 +494,7 @@ void do_physics_sim(object *obj) {
 	// FIXME drag vectors
 
 	for (;;) {
-		//vector frame_last_pos = *pos;
+		vector frame_last_pos = *pos;
 		vector frame_last_vel = obj->mtype.phys_info.velocity;
 		matrix frame_last_orient = obj->orient;
 		vector frame_last_rotvel = obj->mtype.phys_info.rotvel;
@@ -577,12 +590,18 @@ void do_physics_sim(object *obj) {
 
 		if (hit) {
 			switch (hit) {
-				case HIT_WALL:
+				case HIT_WALL: {
+					vector movedir = frame_last_pos - obj->pos;
+					vm_NormalizeVector(&movedir);
+					float dot = 0.1f; //movedir * hit_info.hit_wallnorm[0];  ???
 					collide_object_with_wall(obj, 0, hit_info.hit_room,
-						hit_info.hit_face[0], &hit_info.hit_pnt, &hit_info.hit_wallnorm[0], 0);
+						hit_info.hit_face[0], &hit_info.hit_pnt, &hit_info.hit_wallnorm[0], dot);
+					break;
+				}
 				case HIT_OBJECT:
 				case HIT_SPHERE_2_POLY_OBJECT:
 					collide_two_objects(obj, Objects + hit_info.hit_object[0], hit_info.hit_face_pnt,hit_info.hit_wallnorm,&hit_info);
+					break;
 			}
 			if (obj->flags & OF_DEAD)
 				break;
@@ -847,6 +866,20 @@ void ObjDoFrameAll() {
 	ObjDeleteDead();
 }
 
+void Jump(int num) {
+	vector pos; int roomnum=-1; matrix orient;
+	switch (num) {
+		case 1:
+			pos = {3705.27222, 201.327698, 2128.12769};roomnum=86;orient={{1,0,0},{0,1,0},{0,0,1}};//{{-0.26895839, -0.0622743145,  0.20449388}, {-0.120590039, 0.391920298, -0.0917164236}, {-0.150688574, -0.216117606, -0.211427435}};
+			break;
+		case 2:
+			pos = {4040.13721, 239.690414, 2254.43262};roomnum=73;orient={{1,0,0},{0,1,0},{0,0,1}};//{{-0.0300339796, -0.00902694371,  0.181316838}, {0.0250956547, 0.310730785,  0.00479463348}, {-0.189535052,  0.0344414338, -0.00805729348}};
+			break;
+	}
+	if (roomnum != -1)
+		ObjSetPos(&Objects[0], &pos, roomnum, &orient);
+}
+
 u32 WindowFlags;
 b32 Running = 1;
 b32 FullScreen = 0;
@@ -917,12 +950,18 @@ void DoControls() {
 	//memset(pressed, 0, sizeof(pressed));
 	FireWeaponFromPlayer(obj, 0, pressed[maplk(SDLK_LCTRL)] || mbpressed[SDL_BUTTON_LEFT], 0, 0);
 	FireWeaponFromPlayer(obj, 1, pressed[maplk(SDLK_SPACE)] || mbpressed[SDL_BUTTON_RIGHT], 0, 0);
+	if (justpressed['1']) Jump(1);
+	if (justpressed['2']) Jump(2);
 }
 
 void GameFrame() {
 	ObjDoFrameAll();
+	DoMatcensFrame();
 	Level_goals.DoFrame();
 	DoorwayDoFrame();
+
+
+
 	DoControls();
 
 	GameRenderFrame();
@@ -1115,6 +1154,10 @@ void start() {
 	PageInAllData();
 	ResetScorches();
 	AIInitAll();
+	
+	InitMatcensForLevel();
+
+
 
 	DeleteMultiplayerObjects();
 	setup_dll();
@@ -1137,8 +1180,10 @@ void start() {
 	//vector pos {2683.43311, 263.104706, 2856.13916};int roomnum=13;matrix orient={{0.0815096274, -0.00359472446, -0.996666074}, {0.995789409, -0.0417942591, 0.0815886706}, {-0.0419482104, -0.999119759, 0.000172953864}};
 	//vector pos={2679.35181, 264.636871, 2854.21509};int roomnum=13;matrix orient={{0.755932629, -0.00473004999, -0.521401942}, {0.178152472, 0.840885103, 0.251659811}, {0.446617872, -0.291483104, 0.697822511}};
 	//orient={{0.643244863, 0.0142674344, 0.446664929}, {0.068410866, 0.887645841, 0.0422371626}, {0.55027771, -0.12580511, -0.7013008}}; //fwd
-	vector pos={2647.48535, 291.724976,  2880.74878};int roomnum=22;matrix orient={{ -0.784129441, -0.0412591547, -0.107602321}, {-0.0563592128, 0.895038843, 0.103231899}, {0.133064136, 0.129844069, -0.783052742}};
+	//vector pos={2647.48535, 291.724976,  2880.74878};int roomnum=22;matrix orient={{ -0.784129441, -0.0412591547, -0.107602321}, {-0.0563592128, 0.895038843, 0.103231899}, {0.133064136, 0.129844069, -0.783052742}};
 	//vector pos = {3679.74658, 178.975937, 2400.09326};int roomnum=88;matrix orient={{ 0.469908446, 0.0153542738,  0.155961797}, {-0.0350852311, 0.630550563, 0.0626305044}, {-0.178150684, -0.0946229398, 0.464835405}};
+	vector pos = {3705.27222, 201.327698, 2128.12769};int roomnum=86; matrix orient={{1,0,0},{0,1,0},{0,0,1}}; //{{-0.26895839, -0.0622743145,  0.20449388}, {-0.120590039, 0.391920298, -0.0917164236}, {-0.150688574, -0.216117606, -0.211427435}};
+	//vector pos = {4040.13721, 239.690414, 2254.43262};int roomnum=73;matrix orient={{-0.0300339796, -0.00902694371,  0.181316838}, {0.0250956547, 0.310730785,  0.00479463348}, {-0.189535052,  0.0344414338, -0.00805729348}};
 
 
 
@@ -1171,7 +1216,7 @@ int main(int argc, char **argv) {
 	#ifdef __EMSCRIPTEN__
 	initialize_gl4es();
 	#endif
-	#if 1
+	#if 0
 	ddio_MakePath(hogpath,".","d3demo.hog",NULL);
 	is_demo = 1;
 	#else

@@ -8,6 +8,8 @@
 #include "stringtable.h"
 #include "hud.h"
 #include "hlsoundlib.h"
+#include "viseffect.h"
+#include "fireball.h"
 
 extern int Netgame_flags, Demo_flags, Game_mode;
 extern int DiffLevel_MP, ingame_difficulty;
@@ -395,3 +397,167 @@ void FireWeaponFromPlayer(object *objp,int weapon_type,int down_count,bool down_
 	}
 }
 
+int rand_small_explosion_index() {
+	return ps_rand() % 2 ? SMALL_EXPLOSION_INDEX2 : SMALL_EXPLOSION_INDEX;
+}
+
+void DoConcussiveForce(object *weapon,int parent_handle,float amount) {}
+
+void MakeShockwave(object *weapon,int parent_handle)
+{
+	object *parent, *last;
+	int objnum;
+	
+	if (weapon->impact_time <= 0) {
+		DoConcussiveForce(weapon,parent_handle,1.0);
+		return;
+	}
+	parent = ObjGet(parent_handle);
+	if (parent) {
+		do {
+			last = parent;
+			parent = ObjGet(last->parent_handle);
+		} while (parent);
+		parent_handle = last->handle;
+	} else
+		parent_handle = -1;
+	objnum = ObjCreate(OBJ_SHOCKWAVE,0,weapon->roomnum,&weapon->pos,NULL,parent_handle);
+	if (objnum < 0)
+		return;
+	object *obj = Objects + objnum;
+	obj->control_type = CT_NONE;
+	obj->movement_type = MT_SHOCKWAVE;
+	obj->render_type = RT_NONE;
+	obj->lifeleft = weapon->impact_time;
+	obj->impact_size = weapon->impact_size;
+	obj->impact_force = weapon->impact_force;
+	obj->impact_player_damage = weapon->impact_player_damage;
+	obj->impact_generic_damage = weapon->impact_generic_damage;
+	obj->impact_time = weapon->impact_time;
+	obj->flags |= OF_USES_LIFELEFT;
+}
+
+int CreateGravityField(vector *pos,int roomnum,float size,float time,int parent_handle)
+{
+  int objnum;
+  
+  objnum = ObjCreate(OBJ_FIREBALL,GRAVITY_FIELD_INDEX,roomnum,pos,NULL,-1);
+  if (objnum < 0)
+	objnum = -1;
+  else {
+	object *obj = Objects + objnum;
+    obj->flags |= OF_USES_LIFELEFT;
+    obj->lifetime = time;
+    obj->size = 1.0;
+    obj->lifeleft = time;
+    obj->ctype.blast_info.bm_handle = Fireballs[BLUE_BLAST_RING_INDEX].bm_handle;
+    obj->parent_handle = parent_handle;
+    obj->ctype.blast_info.max_size = size;
+  }
+  return objnum;
+}
+
+void DoWeaponExploded(object *wpnobj,vector *dir,vector *pos,object *target)
+{
+	ushort uVar1;
+	ushort r;
+	ushort g;
+	int visnum;
+	uint bm;
+	int iVar2;
+	int b;
+	int uVar3;
+	uint uVar4;
+	vis_effect *vis;
+	ushort weapon_id;
+	ushort weapon_id1;
+	int wflags;
+	weapon *w;
+
+	weapon_id = wpnobj->id;
+	w = Weapons + weapon_id;
+	if (w->flags & WF_ELECTRICAL)
+		return;
+	MakeShockwave(wpnobj,wpnobj->parent_handle);
+	if (!pos || !(w->flags & WF_PLANAR_BLAST))
+		pos = &wpnobj->pos;
+	if (!dir)
+		dir = &wpnobj->orient.fvec;
+	weapon_id = wpnobj->id;
+	if (w->flags & WF_GRAVITY_FIELD)
+		CreateGravityField(&wpnobj->pos,wpnobj->roomnum,Weapons[weapon_id].gravity_size,
+								Weapons[weapon_id].gravity_time,wpnobj->parent_handle);
+	if ((target == Viewer_object) && !(w->flags & WF_MATTER_WEAPON))
+		return;
+	wflags = w->flags;
+	if ((wflags & WF_PLANAR_BLAST) == 0) {
+		if ((wflags & WF_BLAST_RING) == 0) {
+			if (w->explode_image_handle <= 0) {
+				VisEffectCreate(1,rand_small_explosion_index(),wpnobj->roomnum,pos);
+			} else {
+				visnum = VisEffectCreate(1,CUSTOM_EXPLOSION_INDEX,wpnobj->roomnum,pos);
+				if (visnum < 0)
+					return;
+				vis = VisEffects + visnum;
+				vis->size = w->explode_size;
+				vis->lifetime = w->explode_time;
+				vis->lifeleft = w->explode_time;
+				vis->custom_handle = w->explode_image_handle;
+				vis->lighting_color = GR_RGB16(w->lighting_info.red_light2 * 255,
+					w->lighting_info.green_light2 * 255, w->lighting_info.blue_light2 * 255) | OPAQUE_FLAG16;
+				if ((w->flags & WF_EXPAND) != 0)
+					vis->flags |= VF_EXPAND;
+			}
+		} else {
+			visnum = VisEffectCreate(1,BLAST_RING_INDEX,wpnobj->roomnum,pos);
+			if (visnum < 0)
+				return;
+			vis = VisEffects + visnum;
+			vis->size = w->explode_size;
+			vis->lifetime = w->explode_time;
+			vis->lifeleft = w->explode_time;
+			vis->custom_handle = GetTextureBitmap(w->explode_image_handle,0,false);
+			vis->lighting_color = GR_RGB16(w->lighting_info.red_light2 * 255,
+				w->lighting_info.green_light2 * 255, w->lighting_info.blue_light2 * 255) | OPAQUE_FLAG16;
+		}
+	}
+	else if ((wflags & WF_BLAST_RING) == 0) {
+		if (w->explode_image_handle < 1) {
+			uVar3 = rand_small_explosion_index();
+			visnum = VisEffectCreate(1,uVar3,wpnobj->roomnum,pos);
+			if (visnum < 0)
+				return;
+		} else {
+			visnum = VisEffectCreate(1,CUSTOM_EXPLOSION_INDEX,wpnobj->roomnum,pos);
+			if (visnum < 0) {
+				return;
+			}
+			vis = VisEffects + visnum;
+			vis->size = w->explode_size;
+			vis->lifetime = w->explode_time;
+			vis->lifeleft = w->explode_time;
+			vis->custom_handle = w->explode_image_handle;
+			vis->lighting_color = GR_RGB16(w->lighting_info.red_light2 * 255,
+				w->lighting_info.green_light2 * 255, w->lighting_info.blue_light2 * 255) | OPAQUE_FLAG16;
+		}
+		vis = VisEffects + visnum;
+		vis->flags = vis->flags | VF_PLANAR;
+		vis->end_pos = *dir;
+		if ((w->flags & WF_EXPAND) != 0)
+			vis->flags = vis->flags | VF_EXPAND;
+	}
+	else {
+		visnum = VisEffectCreate(1,BLAST_RING_INDEX,wpnobj->roomnum,pos);
+		if (visnum < 0)
+			return;
+		vis = VisEffects + visnum;
+		vis->size = w->explode_size;
+		vis->lifetime = w->explode_time;
+		vis->lifeleft = w->explode_time;
+		vis->custom_handle = GetTextureBitmap(w->explode_image_handle,0,false);
+		vis->flags = vis->flags | VF_PLANAR;
+		vis->end_pos = *dir;
+		vis->lighting_color = GR_RGB16(w->lighting_info.red_light2 * 255,
+			w->lighting_info.green_light2 * 255, w->lighting_info.blue_light2 * 255) | OPAQUE_FLAG16;
+	}
+}

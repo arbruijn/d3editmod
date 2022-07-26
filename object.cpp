@@ -218,9 +218,9 @@ extern void CollideInit();
 //sets up the free list & init player & whatever else
 void InitObjects()
 {
-
 	int i;
 
+	#if 0
 	for(i=0;i<MAX_OBJECTS;i++)
 	{
 		Objects[i].next = -1;
@@ -237,7 +237,8 @@ void InitObjects()
 	{
 		Rooms[i].objects = -1;
 		Rooms[i].vis_effects=-1;
-	}	
+	}
+	#endif
 
 	//Initialize the collision system
 	CollideInit();	
@@ -252,7 +253,7 @@ void InitObjects()
 		Rooms[i].vis_effects=-1;
 	}
 
-//	InitVisEffects ();
+	InitVisEffects ();
 
 	atexit(FreeAllObjects);
 }
@@ -2361,3 +2362,23 @@ void ObjSetPos(object *obj,vector *pos,int roomnum,matrix *orient)
 	}
 }
 
+void ObjGhostObject(int objnum)
+{
+	if (objnum >= MAX_OBJECTS)
+		return;
+	int type = Objects[objnum].type;
+	if (type == OBJ_NONE || type == OBJ_DUMMY || type == OBJ_PLAYER || type == OBJ_GHOST)
+		return;
+	Objects[objnum].dummy_type = type;
+	Objects[objnum].type = OBJ_DUMMY;
+}
+
+void ObjUnGhostObject(int objnum)
+{
+	if (objnum >= MAX_OBJECTS)
+		return;
+	if (Objects[objnum].type != OBJ_DUMMY)
+		return;
+	Objects[objnum].type = Objects[objnum].dummy_type;
+	Objects[objnum].dummy_type = OBJ_NONE;
+}

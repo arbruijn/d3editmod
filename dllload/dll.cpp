@@ -19,6 +19,7 @@ extern "C" {
 #include "ntimage.h"
 #include "winnt.h"
 #include "dll.h"
+#include "msafenames.h"
 
 
 #undef WIN32
@@ -26,6 +27,7 @@ extern "C" {
 #include "globals.h"
 #define INCLUDED_FROM_D3
 #include "osiris_import.h"
+#include "osiris_dll.h"
 #if 0
 #define FILE CFILE
 #define fopen cfopen
@@ -325,23 +327,35 @@ unsigned Scrpt_FindLevelGoalName(unsigned name) {
 	printf("FindLevelGoalName %s\n", (char *)name);
 	return osipf_FindLevelGoalName((char *)name);
 }
+unsigned Scrpt_FindTextureName(unsigned name) {
+	printf("FindTextureName %s\n", (char *)name);
+	return osipf_FindTextureName((char *)name);
+}
 unsigned Scrpt_GetTriggerFace(unsigned trigger) { return osipf_GetTriggerFace(trigger); }
 unsigned Scrpt_GetTriggerRoom(unsigned trigger) { return osipf_GetTriggerRoom(trigger); }
-unsigned Scrpt_CreateTimer(unsigned timer) { return 0; }
+unsigned Scrpt_CreateTimer(unsigned timer) { return Osiris_CreateTimer((tOSIRISTIMER *)timer); }
 unsigned Cine_StartCanned(unsigned info) { return 0; }
 extern void msafe_CallFunction(ubyte type, msafe_struct *mstruct);
 extern void msafe_GetValue(ubyte type, msafe_struct *mstruct);
 extern void msafe_DoPowerup(msafe_struct *mstruct);
 extern void osipf_LGoalValue(char action,char type,void *val,int goal,int item);
+extern void osipf_MatcenValue(int h,char op,char type,void *val,int prod);
 union bitfloat { unsigned bit; float f; };
 extern void osipf_ObjectCustomAnim(int objnum,float start,float end,float time,char flags,int sound,char next_type);
 unsigned MSafe_CallFunction(unsigned type, unsigned mstruct) { msafe_CallFunction(type, (msafe_struct *)mstruct); return 0;}
 unsigned MSafe_GetValue(unsigned type, unsigned mstruct) { msafe_GetValue(type, (msafe_struct *)mstruct); return 0;}
 unsigned MSafe_DoPowerup(unsigned mstruct) { printf("mpowerup\n"); msafe_DoPowerup((msafe_struct *)mstruct); return 0;}
 unsigned LGoal_Value(unsigned act, unsigned type, unsigned val, unsigned goal, unsigned item) { osipf_LGoalValue(act, type, (void *)val, goal, item); return 0; }
+unsigned Matcen_Value(unsigned h,unsigned op, unsigned type, unsigned val, unsigned prod) { osipf_MatcenValue(h, op, type, (void *)val, prod); return 0; }
 unsigned Obj_SetCustomAnim(unsigned objnum,unsigned start,unsigned end,unsigned time,unsigned flags,unsigned sound,unsigned next_type) {
 	union bitfloat start_float = { .bit = start }, end_float = { .bit = end }, time_float = { .bit = time };
 	osipf_ObjectCustomAnim(objnum,start_float.f,end_float.f,time_float.f,flags,sound,next_type);
+	return 0;
+}
+void osipf_ObjKill(int handle,int killer_handle,float damage,int flags,float min_time,float max_time);
+unsigned Obj_Kill(unsigned handle,unsigned killer_handle,unsigned damage,unsigned flags,unsigned min_time,unsigned max_time) {
+	union bitfloat damagef = { .bit = damage  }, min_timef = { .bit = min_time }, max_timef = { .bit = max_time };
+	osipf_ObjKill(handle,killer_handle,damagef.f,flags,min_timef.f,max_timef.f);
 	return 0;
 }
 
@@ -430,6 +444,7 @@ struct {
 	{"Scrpt_FindRoomName", 1 | 0x100, .fun1 = Scrpt_FindRoomName},
 	{"Scrpt_FindTriggerName", 1 | 0x100, .fun1 = Scrpt_FindTriggerName},
 	{"Scrpt_FindLevelGoalName", 1 | 0x100, .fun1 = Scrpt_FindLevelGoalName},
+	{"Scrpt_FindTextureName", 1 | 0x100, .fun1 = Scrpt_FindTextureName},
 	{"Scrpt_GetTriggerFace", 1 | 0x100, .fun1 = Scrpt_GetTriggerFace},
 	{"Scrpt_GetTriggerRoom", 1 | 0x100, .fun1 = Scrpt_GetTriggerRoom},
 	{"Scrpt_CreateTimer", 1 | 0x100, .fun1 = Scrpt_CreateTimer},
@@ -438,7 +453,9 @@ struct {
 	{"MSafe_GetValue", 2 | 0x100, .fun2 = MSafe_GetValue},
 	{"MSafe_DoPowerup", 1 | 0x100, .fun1 = MSafe_DoPowerup},
 	{"Obj_SetCustomAnim", 7 | 0x100, .fun7 = Obj_SetCustomAnim},
+	{"Obj_Kill", 6 | 0x100, .fun6 = Obj_Kill},
 	{"LGoal_Value", 5 | 0x100, .fun5 = LGoal_Value},
+	{"Matcen_Value", 5 | 0x100, .fun5 = Matcen_Value},
 	};
 #define MAX_FUNS (sizeof(funs) / sizeof(funs[0]))
 
@@ -456,8 +473,11 @@ int do_int(x86emu_t *emu, u8 num, unsigned type)
 		int c = funs[n].args == -1 ? -1 : funs[n].args & 0xff;
 		#ifndef __EMSCRIPTEN__
 		printf("run fun %d %s", n, funs[n].name);
-		for (int i = 0; i < c; i++)
+		bool msafe = strncmp(funs[n].name,"MSafe_", 6)==0 && funs[n].name[6] != 'D';
+		for (int i = 0; i < c; i++) {
 			printf(" %x", buf[i + 1]);
+			if (msafe && !i) printf(" (%s)", msafe_names[buf[i + 1]]);
+		}
 		printf("\n");
 		#endif
 		switch (c) {
@@ -726,6 +746,7 @@ void dll_init() {
 	tls_vals[0] = EMU_R_ESP;
 	emu->segs_offs[_FS] = (uint32_t)&tls_vals;
 	atexit(dll_done);
+	msafenames_init();
 }
 
 unsigned emucall(x86emu_t *emu, unsigned ip) {
@@ -820,8 +841,8 @@ void osiris_setup(tOSIRISModuleInit *mod) {
 	mod->File_eof = (File_eof_fp)find_fun("File_eof");
 	mod->Scrpt_FindRoomName  = (Scrpt_FindRoomName_fp)find_fun("Scrpt_FindRoomName");
 	mod->Scrpt_FindSoundName  = (Scrpt_FindRoomName_fp)find_fun("FindName");
-	mod->Scrpt_FindLevelGoalName  = (Scrpt_FindRoomName_fp)find_fun("Scrpt_FindLevelGoalName");
-	mod->Scrpt_FindTextureName  = (Scrpt_FindRoomName_fp)find_fun("FindName");
+	mod->Scrpt_FindLevelGoalName  = (Scrpt_FindLevelGoalName_fp)find_fun("Scrpt_FindLevelGoalName");
+	mod->Scrpt_FindTextureName  = (Scrpt_FindTextureName_fp)find_fun("Scrpt_FindTextureName");
 	mod->Scrpt_FindPathName  = (Scrpt_FindRoomName_fp)find_fun("FindName");
 	mod->Scrpt_FindTriggerName  = (Scrpt_FindTriggerName_fp)find_fun("Scrpt_FindTriggerName");
 	mod->Scrpt_FindDoorName  = (Scrpt_FindRoomName_fp)find_fun("FindName");
@@ -835,7 +856,9 @@ void osiris_setup(tOSIRISModuleInit *mod) {
 	mod->MSafe_GetValue = (MSafe_GetValue_fp)find_fun("MSafe_GetValue");
 	mod->MSafe_DoPowerup = (MSafe_DoPowerup_fp)find_fun("MSafe_DoPowerup");
 	mod->Obj_SetCustomAnim = (Obj_SetCustomAnim_fp)find_fun("Obj_SetCustomAnim");
+	mod->Obj_Kill = (Obj_Kill_fp)find_fun("Obj_Kill");
 	mod->LGoal_Value = (LGoal_Value_fp)find_fun("LGoal_Value");
+	mod->Matcen_Value = (Matcen_Value_fp)find_fun("Matcen_Value");
 }
 
 #ifdef TEST

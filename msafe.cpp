@@ -1,16 +1,30 @@
 #include "game.h"
+#define INCLUDED_FROM_D3
 #include "osiris_common.h"
 #include "doorway.h"
 #include "multi.h"
 #include "lib/multi_world_state.h"
+#include "inventory.h"
+#include "player.h"
+#include "guidebot.h"
+#include "demofile.h"
+#include "hud.h"
+#include "hlsoundlib.h"
+#include "sounds.h"
+#include "levelgoal.h"
+
+int GetPlayerSlot(int objnum);
+void D3MusicSetRegion(short index,short unk) {}
+
 
 bool Demo_call_ok;
 
 bool VALIDATE_ROOM_FACE(int roomnum,int facenum)
 {
 	if ((roomnum >= 0) && (roomnum <= Highest_room_index) && (Rooms[roomnum].used) &&
-		(facenum >= 0) && (facenum < Rooms[roomnum].num_portals))
+		(facenum >= 0) && (facenum < Rooms[roomnum].num_faces))
 		return true;
+	printf("invalid room %d face %d\n", roomnum, facenum);
 	Int3();
 	return false;
 }
@@ -72,14 +86,14 @@ void msafe_CallFunction(ubyte type,msafe_struct *mstruct)
 		return;
 	ok = true;
 	switch (type) {
-#if 0
 	case MSAFE_ROOM_TEXTURE:
-		valid = room_and_face_valid(mstruct->roomnum,(int)mstruct->facenum);
+		valid = VALIDATE_ROOM_FACE(mstruct->roomnum,mstruct->facenum);
 		if (valid == false) {
 			return;
 		}
-		ChangeRoomFaceTexture((mstruct->roomnum,(int)mstruct->facenum,mstruct->index);
+		ChangeRoomFaceTexture(mstruct->roomnum,mstruct->facenum,mstruct->index);
 		break;
+#if 0
 	case MSAFE_ROOM_WIND:
 		valid = room_valid(mstruct->roomnum);
 		if (valid == false) {
@@ -274,7 +288,7 @@ LAB_00490fb0:
 		break;
 	case MSAFE_OBJECT_SHIELDS:
 		obj = ObjGet(mstruct->objhandle);
-		if (obj == (object *)0x0) {
+		if (obj == NULL) {
 			return;
 		}
 		obj = ObjGet(mstruct->objhandle);
@@ -293,7 +307,7 @@ LAB_00490fb0:
 		break;
 	case MSAFE_OBJECT_ENERGY:
 		obj = ObjGet(mstruct->objhandle);
-		if (obj == (object *)0x0) {
+		if (obj == NULL) {
 			return;
 		}
 		obj = ObjGet(mstruct->objhandle);
@@ -301,7 +315,7 @@ LAB_00490fb0:
 		break;
 	case MSAFE_OBJECT_LIGHT_COLOR:
 		obj = ObjGet(mstruct->objhandle);
-		if (obj != (object *)0x0) {
+		if (obj != NULL) {
 			ObjSetLocalLighting(obj);
 			obj->lighting_info->red_light1 = mstruct->r1;
 			obj->lighting_info->green_light1 = mstruct->g1;
@@ -311,7 +325,7 @@ LAB_00490fb0:
 		break;
 	case MSAFE_OBJECT_MOVEMENT_SCALAR:
 		obj = ObjGet(mstruct->objhandle);
-		if (obj == (object *)0x0) {
+		if (obj == NULL) {
 			return;
 		}
 		obj = ObjGet(mstruct->objhandle);
@@ -319,7 +333,7 @@ LAB_00490fb0:
 		break;
 	case MSAFE_OBJECT_RECHARGE_SCALAR:
 		obj = ObjGet(mstruct->objhandle);
-		if (obj == (object *)0x0) {
+		if (obj == NULL) {
 			return;
 		}
 		obj = ObjGet(mstruct->objhandle);
@@ -327,7 +341,7 @@ LAB_00490fb0:
 		break;
 	case MSAFE_OBJECT_WSPEED_SCALAR:
 		obj = ObjGet(mstruct->objhandle);
-		if (obj == (object *)0x0) {
+		if (obj == NULL) {
 			return;
 		}
 		obj = ObjGet(mstruct->objhandle);
@@ -335,7 +349,7 @@ LAB_00490fb0:
 		break;
 	case MSAFE_OBJECT_DAMAGE_SCALAR:
 		obj = ObjGet(mstruct->objhandle);
-		if (obj == (object *)0x0) {
+		if (obj == NULL) {
 			return;
 		}
 		obj = ObjGet(mstruct->objhandle);
@@ -343,7 +357,7 @@ LAB_00490fb0:
 		break;
 	case MSAFE_OBJECT_ARMOR_SCALAR:
 		obj = ObjGet(mstruct->objhandle);
-		if (obj == (object *)0x0) {
+		if (obj == NULL) {
 			return;
 		}
 		obj = ObjGet(mstruct->objhandle);
@@ -351,7 +365,7 @@ LAB_00490fb0:
 		break;
 	case MSAFE_OBJECT_DAMAGE_OBJECT:
 		obj = ObjGet(mstruct->objhandle);
-		if (obj == (object *)0x0) {
+		if (obj == NULL) {
 			return;
 		}
 		ok = false;
@@ -364,7 +378,7 @@ LAB_00490fb0:
 			uVar15 = 0;
 			if (killer == 0xffffffff) {
 				flags = (uint)mstruct->damage_type;
-				obj = (object *)0x0;
+				obj = NULL;
 			}
 			else {
 				flags = (uint)mstruct->damage_type;
@@ -380,7 +394,7 @@ LAB_00490fb0:
 			roomnum = 0;
 			if (killer == 0xffffffff) {
 				uVar11 = (uint)mstruct->damage_type;
-				obj = (object *)0x0;
+				obj = NULL;
 			}
 			else {
 				uVar11 = (uint)mstruct->damage_type;
@@ -392,21 +406,21 @@ LAB_00490fb0:
 		break;
 	case MSAFE_OBJECT_TYPE:
 		obj = ObjGet(mstruct->objhandle);
-		if (obj == (object *)0x0) {
+		if (obj == NULL) {
 			return;
 		}
 		obj->type = *(obj_type_enum *)&mstruct->type;
 		break;
 	case MSAFE_OBJECT_ID:
 		obj = ObjGet(mstruct->objhandle);
-		if (obj == (object *)0x0) {
+		if (obj == NULL) {
 			return;
 		}
 		obj->id = *(ushort *)&mstruct->id;
 		break;
 	case MSAFE_OBJECT_ADD_WEAPON:
 		obj = ObjGet(mstruct->objhandle);
-		if (obj == (object *)0x0) {
+		if (obj == NULL) {
 			return;
 		}
 		roomnum = __ftol((float10)mstruct->ammo);
@@ -420,13 +434,13 @@ LAB_00490fb0:
 		break;
 	case MSAFE_OBJECT_START_SPEW:
 		obj = ObjGet(mstruct->objhandle);
-		if (obj == (object *)0x0) {
+		if (obj == NULL) {
 			return;
 		}
 		cVar5 = mstruct->gunpoint;
 		if (cVar5 == -2) {
 			obj = ObjGet(mstruct->objhandle);
-			if (obj == (object *)0x0) break;
+			if (obj == NULL) break;
 			spew.field2_0x2 = '\0';
 			spew.pos.x = (obj->pos).x;
 			spew.pos.y = (obj->pos).y;
@@ -438,7 +452,7 @@ LAB_00490fb0:
 		}
 		else if (cVar5 == -1) {
 			obj = ObjGet(mstruct->objhandle);
-			if (obj == (object *)0x0) break;
+			if (obj == NULL) break;
 			spew.field2_0x2 = '\0';
 			spew.pos.x = (obj->pos).x;
 			spew.pos.y = (obj->pos).y;
@@ -484,7 +498,7 @@ LAB_00490fb0:
 		break;
 	case MSAFE_OBJECT_GHOST:
 		obj = ObjGet(mstruct->objhandle);
-		if (obj == (object *)0x0) {
+		if (obj == NULL) {
 			return;
 		}
 		obj = ObjGet(mstruct->objhandle);
@@ -507,7 +521,7 @@ LAB_00490fb0:
 		break;
 	case MSAFE_OBJECT_UNGHOST:
 		obj = ObjGet(mstruct->objhandle);
-		if (obj == (object *)0x0) {
+		if (obj == NULL) {
 			return;
 		}
 		obj = ObjGet(mstruct->objhandle);
@@ -519,7 +533,7 @@ LAB_00490fb0:
 	case MSAFE_OBJECT_REMOVE:
 		ok = false;
 		obj = ObjGet(mstruct->objhandle);
-		if (obj == (object *)0x0) {
+		if (obj == NULL) {
 			return;
 		}
 		soundnum = mstruct->playsound;
@@ -542,7 +556,7 @@ LAB_00490fb0:
 		break;
 	case MSAFE_OBJECT_FLAGS:
 		obj = ObjGet(mstruct->objhandle);
-		if (obj == (object *)0x0) {
+		if (obj == NULL) {
 			return;
 		}
 		ok = obj->flags != mstruct->flags;
@@ -555,7 +569,7 @@ LAB_00490fb0:
 		break;
 	case MSAFE_OBJECT_CONTROL_TYPE:
 		obj = ObjGet(mstruct->objhandle);
-		if (obj == (object *)0x0) {
+		if (obj == NULL) {
 			return;
 		}
 		if ((obj->flags & OF_DYING) != OF_NONE) {
@@ -565,14 +579,14 @@ LAB_00490fb0:
 		break;
 	case MSAFE_OBJECT_MOVEMENT_TYPE:
 		obj = ObjGet(mstruct->objhandle);
-		if (obj == (object *)0x0) {
+		if (obj == NULL) {
 			return;
 		}
 		obj->movement_type = mstruct->movement_type;
 		break;
 	case MSAFE_OBJECT_CREATION_TIME:
 		obj = ObjGet(mstruct->objhandle);
-		if (obj == (object *)0x0) {
+		if (obj == NULL) {
 			return;
 		}
 		obj->creation_time = mstruct->creation_time;
@@ -615,7 +629,7 @@ LAB_00490fb0:
 		break;
 	case MSAFE_OBJECT_PHYSICS_FLAGS:
 		obj = ObjGet(mstruct->objhandle);
-		if (obj == (object *)0x0) {
+		if (obj == NULL) {
 			return;
 		}
 		if ((obj->mtype).flags != mstruct->physics_flags) {
@@ -629,14 +643,14 @@ switchD_00490b92_caseD_71:
 		break;
 	case MSAFE_OBJECT_PARENT:
 		obj = ObjGet(mstruct->objhandle);
-		if (obj == (object *)0x0) {
+		if (obj == NULL) {
 			return;
 		}
 		obj->parent_handle = mstruct->ithandle;
 		break;
 	case MSAFE_OBJECT_ROTDRAG:
 		obj = ObjGet(mstruct->objhandle);
-		if (obj == (object *)0x0) {
+		if (obj == NULL) {
 			return;
 		}
 		ok = false;
@@ -644,7 +658,7 @@ switchD_00490b92_caseD_71:
 		break;
 	case MSAFE_OBJECT_INVULNERABLE:
 		obj = ObjGet(mstruct->objhandle);
-		if (obj == (object *)0x0) {
+		if (obj == NULL) {
 			return;
 		}
 		obj = ObjGet(mstruct->objhandle);
@@ -684,7 +698,7 @@ switchD_00490b92_caseD_71:
 		break;
 	case MSAFE_OBJECT_CLOAK:
 		obj = ObjGet(mstruct->objhandle);
-		if (obj == (object *)0x0) {
+		if (obj == NULL) {
 			return;
 		}
 		if (mstruct->state == '\0') {
@@ -703,7 +717,7 @@ switchD_00490b92_caseD_71:
 		break;
 	case MSAFE_OBJECT_PLAYER_CMASK:
 		obj = ObjGet(mstruct->objhandle);
-		if ((obj != (object *)0x0) && (obj->type == OBJ_PLAYER)) {
+		if ((obj != NULL) && (obj->type == OBJ_PLAYER)) {
 			if (mstruct->control_val == '\0') {
 				Players[obj->id].controller_bitflags =
 						 Players[obj->id].controller_bitflags & ~mstruct->control_mask;
@@ -716,7 +730,7 @@ switchD_00490b92_caseD_71:
 		break;
 	case MSAFE_OBJECT_NO_RENDER:
 		obj = ObjGet(mstruct->objhandle);
-		if (obj == (object *)0x0) {
+		if (obj == NULL) {
 			return;
 		}
 		obj = ObjGet(mstruct->objhandle);
@@ -726,7 +740,7 @@ switchD_00490b92_caseD_71:
 		break;
 	case MSAFE_OBJECT_LIGHT_DIST:
 		obj = ObjGet(mstruct->objhandle);
-		if (obj != (object *)0x0) {
+		if (obj != NULL) {
 			ObjSetLocalLighting(obj);
 			if (mstruct->light_distance < 0.0) {
 				mstruct->light_distance = 0.0;
@@ -737,7 +751,7 @@ switchD_00490b92_caseD_71:
 		break;
 	case MSAFE_OBJECT_DEFORM:
 		obj = ObjGet(mstruct->objhandle);
-		if ((obj != (object *)0x0) && (peVar2 = obj->effect_info, peVar2 != (effect_info_s *)0x0)) {
+		if ((obj != NULL) && (peVar2 = obj->effect_info, peVar2 != (effect_info_s *)0x0)) {
 			peVar2->type_flags = peVar2->type_flags | 2;
 			obj->effect_info->deform_range = mstruct->amount;
 			obj->effect_info->deform_time = mstruct->lifetime;
@@ -746,32 +760,31 @@ switchD_00490b92_caseD_71:
 	case MSAFE_OBJECT_VIEWER_SHAKE:
 		AddToShakeMagnitude(mstruct->amount);
 		break;
+#endif
 	case MSAFE_OBJECT_PLAYER_KEY:
 		playernum = GetPlayerSlot(mstruct->ithandle);
 		if (playernum != -1) {
-			bVar8 = (char)mstruct->index - 1;
-			if ((Players[playernum].keys & (byte)(1 << (bVar8 & 0x1f))) != 0) {
+			bVar8 = mstruct->index - 1;
+			if (Players[playernum].keys & (1 << bVar8))
 				return;
-			}
-			Players[playernum].keys = '\x01' << (bVar8 & 0x1f) | Players[playernum].keys;
-			Global_keys = Global_keys | 1 << ((char)mstruct->index - 1U & 0x1f);
+			Players[playernum].keys |= 1 << bVar8;
+			Global_keys |= 1 << bVar8;
 			if ((mstruct->objhandle != 0xffffffff) &&
-				 (obj = ObjGet(mstruct->objhandle), obj != (object *)0x0)) {
-				hlsSystem::Play3dSound((hlsSystem *)&Sound_system,SOUND_POWERUP_PICKUP,3,obj,1.0,0);
-				Inventory::Add(&Players[playernum].inventory,(uint)obj->type,(uint)obj->id,(object *)0x0,-1,
-											 -1,1,mstruct->message);
+				 (obj = ObjGet(mstruct->objhandle), obj)) {
+				Sound_system.Play3dSound(SOUND_POWERUP_PICKUP,3,obj,1.0,0);
+				Players[playernum].inventory.Add(obj->type,obj->id,NULL,-1,-1,1,mstruct->message);
 				if ((Game_mode & 0x24) == 0) {
 					ok = false;
-					obj->flags = obj->flags | OF_DEAD;
+					obj->flags |= OF_DEAD;
 					break;
 				}
-				if ((obj->flags & OF_INFORM_DESTROY_TO_LG) != OF_NONE) {
-					levelgoals::Inform((levelgoals *)&Level_goals,'\x02',0x400,obj->handle);
-				}
+				if (obj->flags & OF_INFORM_DESTROY_TO_LG)
+					Level_goals.Inform(LIT_OBJECT,LGF_COMP_DESTROY,obj->handle);
 			}
 			ok = false;
 		}
 		break;
+#if 0
 	case MSAFE_OBJECT_PLAYER_CONTROLAI:
 		cVar5 = mstruct->slot;
 		ok = false;
@@ -787,14 +800,14 @@ switchD_00490b92_caseD_71:
 	case MSAFE_OBJECT_WORLD_POSITION:
 		obj = ObjGet(mstruct->objhandle);
 		ok = false;
-		if ((obj != (object *)0x0) && (mstruct->roomnum != 0xffffffff)) {
+		if ((obj != NULL) && (mstruct->roomnum != 0xffffffff)) {
 			ObjSetPos(obj,&mstruct->pos,mstruct->roomnum,&mstruct->orient);
 			ok = true;
 		}
 		break;
 	case MSAFE_OBJECT_SPARKS:
 		obj = ObjGet(mstruct->objhandle);
-		if ((obj != (object *)0x0) && (peVar2 = obj->effect_info, peVar2 != (effect_info_s *)0x0)) {
+		if ((obj != NULL) && (peVar2 = obj->effect_info, peVar2 != (effect_info_s *)0x0)) {
 			peVar2->type_flags = peVar2->type_flags | 0x2000;
 			obj->effect_info->spark_delay = 1.0 / mstruct->amount;
 			obj->effect_info->spark_timer = 0.0;
@@ -803,7 +816,7 @@ switchD_00490b92_caseD_71:
 		break;
 	case MSAFE_OBJECT_SETONFIRE:
 		obj = ObjGet(mstruct->objhandle);
-		if (obj == (object *)0x0) {
+		if (obj == NULL) {
 			return;
 		}
 		obj = ObjGet(mstruct->objhandle);
@@ -834,20 +847,20 @@ switchD_00490b92_caseD_71:
 		break;
 	case MSAFE_OBJECT_SHAKE_AREA:
 		obj = ObjGet(mstruct->objhandle);
-		if ((obj != (object *)0x0) &&
+		if ((obj != NULL) &&
 			 (amount = vm_VectorDistanceQuick(&Viewer_object->pos,&obj->pos), amount < mstruct->scalar)) {
 			AddToShakeMagnitude((1.0 - amount / mstruct->scalar) * mstruct->amount);
 		}
 		break;
 	case MSAFE_SHOW_ENABLED_CONTROLS:
 		obj = ObjGet(mstruct->objhandle);
-		if ((obj != (object *)0x0) && (obj->type == OBJ_PLAYER)) {
+		if ((obj != NULL) && (obj->type == OBJ_PLAYER)) {
 			Hud_show_controls = mstruct->state != '\0';
 		}
 		break;
 	case MSAFE_OBJECT_FIRE_WEAPON:
 		obj = ObjGet(mstruct->objhandle);
-		if ((((obj != (object *)0x0) && (roomnum = mstruct->index, -1 < roomnum)) && (roomnum < 200)) &&
+		if ((((obj != NULL) && (roomnum = mstruct->index, -1 < roomnum)) && (roomnum < 200)) &&
 			 (Weapons[roomnum].used != 0)) {
 			FireWeaponFromObject(obj,roomnum,(int)mstruct->gunpoint,false,false);
 		}
@@ -903,7 +916,7 @@ LAB_004922df:
 		}
 		if (mstruct->flags == 0) {
 			obj = ObjGet(mstruct->objhandle);
-			if (obj == (object *)0x0) {
+			if (obj == NULL) {
 				return;
 			}
 			obj = ObjGet(mstruct->ithandle);
@@ -911,7 +924,7 @@ LAB_004922df:
 		else {
 			obj = ObjGet(mstruct->objhandle);
 		}
-		if (obj == (object *)0x0) {
+		if (obj == NULL) {
 			return;
 		}
 		roomnum = VisEffectCreate(1,THICK_LIGHTNING_INDEX,mstruct->roomnum,&mstruct->pos);
@@ -982,7 +995,7 @@ LAB_004922df:
 		goto LAB_0049235a;
 	case MSAFE_SOUND_OBJECT:
 		obj = ObjGet(mstruct->objhandle);
-		if (obj == (object *)0x0) {
+		if (obj == NULL) {
 			return;
 		}
 		flags = 0;
@@ -1056,11 +1069,12 @@ LAB_0049235a:
 		break;
 	case MSAFE_MISC_POPUP_CAMERA:
 		CreateSmallView(0,mstruct->objhandle,3,mstruct->interval,0.726 / mstruct->scalar,
-										(int)mstruct->gunpoint,(char *)0x0);
+										(int)mstruct->gunpoint,NULL);
 		break;
 	case MSAFE_MISC_CLOSE_POPUP:
 		ClosePopupView(0);
 		break;
+#endif
 	case MSAFE_MISC_GAME_MESSAGE:
 		if (mstruct->state == '\0') {
 			flags = 0xffffffff;
@@ -1069,18 +1083,18 @@ LAB_0049235a:
 			flags = GetPlayerSlot(mstruct->objhandle);
 			if (flags == 0xffffffff) break;
 			mstruct->objhandle = Objects[Players[flags].objnum].handle;
-			if (flags != Player_num) goto LAB_00492360;
+			if (flags != Player_num) goto set_slot;
 		}
 		AddGameMessage(mstruct->message);
 		XlateGBMessage(local_100,mstruct->message2);
-		roomnum = ((int)(Game_window_h + (Game_window_h >> 0x1f & 3U)) >> 2) + -0xf;
+		roomnum = (Game_window_h / 4) - 15;
 		if (Demo_flags == 1) {
 			DemoWritePersistantHUDMessage(mstruct->color,-1,roomnum,10.0,3,0x2b,local_100);
 		}
 		if (Demo_flags != 2) {
-			AddPersistantHUDMessage(mstruct->color,-1,roomnum,10.0,3,0x2b,local_100);
+			AddPersistentHUDMessage(mstruct->color,-1,roomnum,10.0,3,0x2b,local_100);
 		}
-		goto LAB_00492360;
+		goto set_slot;
 	case MSAFE_MUSIC_REGION:
 		if (mstruct->state == '\0') {
 			flags = 0xffffffff;
@@ -1089,15 +1103,16 @@ LAB_0049235a:
 			flags = GetPlayerSlot(mstruct->objhandle);
 			if (flags == 0xffffffff) break;
 			mstruct->objhandle = Objects[Players[flags].objnum].handle;
-			if (flags != Player_num) goto LAB_00492360;
+			if (flags != Player_num) goto set_slot;
 		}
 		D3MusicSetRegion(*(short *)&mstruct->index,0);
-LAB_00492360:
-		if ((((Game_mode & 0x24) != 0) && (Netgame_local_role == 1)) && (flags == Player_num)) {
+set_slot:
+		if ((((Game_mode & 0x24) != 0) && (Netgame.local_role == 1)) && (flags == Player_num)) {
 			ok = false;
 		}
 		mstruct->slot = (sbyte)flags;
 		break;
+#if 0
 	case MSAFE_MISC_ENABLE_SHIP:
 		PlayerSetShipPermission(-1,mstruct->name,mstruct->state != '\0');
 		break;
@@ -1113,7 +1128,7 @@ LAB_00492360:
 		break;
 	case MSAFE_MISC_GUIDEBOT_NAME:
 		obj = ObjGet(mstruct->objhandle);
-		if (((obj != (object *)0x0) && (obj->type == OBJ_PLAYER)) && (obj->id == Player_num)) {
+		if (((obj != NULL) && (obj->type == OBJ_PLAYER)) && (obj->id == Player_num)) {
 			pilot_class::set_guidebot_name((pilot_class *)&Current_pilot,mstruct->name);
 		}
 		break;
@@ -1174,75 +1189,65 @@ LAB_00492360:
 		break;
 #if 0
 	case MSAFE_TRIGGER_SET:
-		TriggerSetState((uint)mstruct->trigger_num,mstruct->state != '\0');
+		TriggerSetState(mstruct->trigger_num,mstruct->state != 0);
 		ok = false;
 		break;
+#endif		
 	case MSAFE_INVEN_ADD_TYPE_ID:
 		obj = ObjGet(mstruct->objhandle);
-		if ((obj != (object *)0x0) && (obj->type == OBJ_PLAYER)) {
-			if (mstruct->type == 5) {
-				Inventory::Add(&Players[obj->id].counter_measures,5,mstruct->id,(object *)0x0,-1,-1,
-											 mstruct->flags,(char *)0x0);
+		if ((obj != NULL) && (obj->type == OBJ_PLAYER)) {
+			if (mstruct->type == OBJ_WEAPON) {
+				Players[obj->id].counter_measures.Add(OBJ_WEAPON,mstruct->id,NULL,-1,-1,mstruct->flags,NULL);
 			}
 			else {
-				Inventory::Add(&Players[obj->id].inventory,mstruct->type,mstruct->id,(object *)0x0,-1,-1,
-											 mstruct->flags,(char *)0x0);
+				Players[obj->id].inventory.Add(mstruct->type,mstruct->id,NULL,-1,-1,mstruct->flags,NULL);
 			}
 		}
 		break;
 	case MSAFE_INVEN_REMOVE:
 	case MSAFE_COUNTERMEASURE_REMOVE:
 		obj = ObjGet(mstruct->objhandle);
-		if ((obj != (object *)0x0) && (obj->type == OBJ_PLAYER)) {
+		if ((obj != NULL) && (obj->type == OBJ_PLAYER)) {
 			uVar1 = obj->id;
-			if ((char)type == -0x2b) {
-				mstruct->type = 5;
-			}
-			if (mstruct->type == 5) {
-				Inventory::Remove(&Players[uVar1].counter_measures,5,mstruct->id);
-			}
-			else {
-				Inventory::Remove(&Players[uVar1].inventory,mstruct->type,mstruct->id);
-			}
+			if (type == MSAFE_COUNTERMEASURE_REMOVE)
+				mstruct->type = OBJ_WEAPON;
+			if (mstruct->type == OBJ_WEAPON)
+				Players[uVar1].counter_measures.Remove(OBJ_WEAPON,mstruct->id);
+			else
+				Players[uVar1].inventory.Remove(mstruct->type,mstruct->id);
 		}
 		break;
 	case MSAFE_INVEN_ADD_OBJECT:
 		obj = ObjGet(mstruct->objhandle);
 		obj2 = ObjGet(mstruct->ithandle);
 		ok = false;
-		if (((obj != (object *)0x0) && (obj2 != (object *)0x0)) &&
-			 ((obj->type == OBJ_PLAYER &&
-				(valid = Inventory::AddObject
-													 (&Players[obj->id].inventory,obj2->handle,mstruct->flags,
-														(char *)(-(uint)(mstruct->message[0] != '\0') & (uint)mstruct->message))
-				, valid != false)))) {
-			ok = true;
-		}
+		if (obj && obj2 && obj->type == OBJ_PLAYER)
+			ok = Players[obj->id].inventory.AddObject(obj2->handle,mstruct->flags,mstruct->message[0] ? mstruct->message : NULL);
 		break;
 	case MSAFE_INVEN_REMOVE_OBJECT:
 		obj = ObjGet(mstruct->objhandle);
 		obj2 = ObjGet(mstruct->ithandle);
 		mstruct->state = '\0';
 		ok = false;
-		if (((obj != (object *)0x0) && (obj2 != (object *)0x0)) && (obj->type == OBJ_PLAYER)) {
-			valid = Inventory::Remove(&Players[obj->id].inventory,obj2->handle,-1);
+		if (((obj != NULL) && (obj2 != NULL)) && (obj->type == OBJ_PLAYER)) {
+			valid = Players[obj->id].inventory.Remove(obj2->handle,-1);
 			mstruct->state = valid;
 			if (valid != false) {
 				ok = true;
 			}
 		}
 		break;
+#if 0
 	case MSAFE_COUNTERMEASURE_ADD:
 		obj = ObjGet(mstruct->objhandle);
-		if ((obj != (object *)0x0) && (obj->type == OBJ_PLAYER)) {
+		if ((obj != NULL) && (obj->type == OBJ_PLAYER)) {
 			uVar1 = obj->id;
 			local_17c = 0.0;
 			if ((0 < mstruct->count) &&
 				 ((roomnum = FindWeaponName(mstruct->name), roomnum != -1 &&
 					(local_184 = (void *)0x0, 0 < mstruct->count)))) {
 				do {
-					ok = Inventory::Add(&Players[uVar1].counter_measures,5,roomnum,obj,mstruct->aux_type,
-																	mstruct->aux_id,0,(char *)0x0);
+					ok = Players[uVar1].counter_measures.Add(OBJ_WEAPON,roomnum,obj,mstruct->aux_type,mstruct->aux_id,0,NULL);
 					if (ok != false) {
 						local_17c = (float)((int)local_17c + 1);
 					}
@@ -1255,7 +1260,7 @@ LAB_00492360:
 		break;
 	case MSAFE_WEAPON_ADD:
 		obj = ObjGet(mstruct->objhandle);
-		if ((obj == (object *)0x0) || (obj->type != OBJ_PLAYER)) break;
+		if ((obj == NULL) || (obj->type != OBJ_PLAYER)) break;
 		local_184 = (void *)(mstruct->index * 0xfc + 0xa2086c + Players[obj->id].ship_index * 0x1724);
 		valid = PlayerHasWeapon((uint)obj->id,mstruct->index);
 		if ((valid == false) && (mstruct->count < 1)) {

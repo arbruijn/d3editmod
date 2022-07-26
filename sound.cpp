@@ -812,4 +812,9 @@ void hlsSystem::StopSoundImmediate(int hlsound_uid) {
 bool hlsSystem::ComputePlayInfo(int sound_obj_index, vector *virtual_pos, vector *virtual_vel, float *adjusted_volume) {
 	return false;
 }
+int hlsSystem::Play3dSound(int a, int b, pos_state*c, float d, int e, float f) {
+	return -1;
+}
+void hlsSystem::StopSoundLooping(int id) {
+}
 #endif

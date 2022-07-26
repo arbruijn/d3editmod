@@ -70,3 +70,21 @@ void InitPlayerNewShip(int playernum, int invel_reset) {
 	Players[playernum].controller_bitflags = ~0;
 }
 
+
+int GetPlayerSlot(int objnum)
+{
+	object *obj;
+	int type;
+	
+	obj = ObjGet(objnum);
+	if (obj) {
+		type = obj->type;
+		if (type == OBJ_WEAPON) {
+			obj = ObjGetUltimateParent(obj);
+			type = obj->type;
+		}
+		if (type == OBJ_PLAYER)
+			return obj->id;
+	}
+	return -1;
+}

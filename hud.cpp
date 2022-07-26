@@ -23,6 +23,7 @@ bool AddFilteredHUDMessage(char *msg, ...) {
 }
 
 void AddGameMessage(char *msg) {
+	printf("game message: %s\n", msg);
 }
 
 void RenderHUDTextFlags(int flags,ddgr_color color,ubyte alpha,int sat_count,int x,int y,char *fmt,...)
@@ -66,7 +67,10 @@ void StartPersistentHUDMessage(ddgr_color color,int x,int y,float time,uint flag
 		int w = grtext_GetTextLineWidth(msg);
 		x = (Game_window_w - w) / 2 + Game_window_x;
 	}
-
+	if (y == -1) {
+    	int h = grfont_GetHeight(Game_fonts[2]);
+    	y = (Game_window_h - h) / 2 + Game_window_y;
+	}
 	memset(&pmsg, 0, sizeof(pmsg));
 	pmsg.alpha = 0xc0;
 	pmsg.color = color;

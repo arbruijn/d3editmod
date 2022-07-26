@@ -1,0 +1,27 @@
+--- d3.html.org	2022-07-20 22:34:45.050368340 +0200
++++ d3.html	2022-07-20 23:05:08.633336107 +0200
+@@ -1221,6 +1221,7 @@
+       var progressElement = document.getElementById('progress');
+       var spinnerElement = document.getElementById('spinner');
+ 
++      var logText = '', logUpdating;
+       var Module = {
+         preRun: [],
+         postRun: [],
+@@ -1236,8 +1237,14 @@
+             //text = text.replace('\n', '<br>', 'g');
+             console.log(text);
+             if (element) {
+-              element.value += text + "\n";
+-              element.scrollTop = element.scrollHeight; // focus on bottom
++              logText += text + '\n';
++              if (!logUpdating) {
++                  logUpdating = true;
++                  setTimeout(function() {
++                    element.value = logText;
++                    element.scrollTop = element.scrollHeight; // focus on bottom
++                    logUpdating = false; }, 16);
++              }
+             }
+           };
+         })(),

@@ -160,8 +160,6 @@ int matcen::GetMaxProd()
 	return m_max_prod;
 }
 
-#ifndef NEWEDITORSRC
-
 bool matcen::StartObjProd()
 {
 	if(m_cached_prod_index < 0 || m_max_prod_type[m_cached_prod_index] >= m_num_prod_type[m_cached_prod_index])
@@ -417,8 +415,6 @@ bool matcen::FinishObjProd()
 
 	return false;
 }
-
-#endif // NEWEDITOR
 
 bool matcen::SetAttach(int attach)
 {
@@ -1186,12 +1182,6 @@ bool matcen::SetStatus(int status, bool f_enable)  // Not all flags are settable
 		m_status &= ~status;
 	}
 
-#ifdef NEWEDITORSRC
-
-	ASSERT(!(m_status & MSTAT_ACTIVE));
-
-#else
-
 	bool cur_active = (m_status & MSTAT_ACTIVE) != 0;
 
 	if(cur_active && !m_last_active_check_result)
@@ -1226,12 +1216,8 @@ bool matcen::SetStatus(int status, bool f_enable)  // Not all flags are settable
 		Sound_system.StopSoundLooping(m_sound_active_handle);
 	}
 
-#endif // NEWEDITOR
-
 	return true;
 }
-
-#ifndef NEWEDITORSRC
 
 void matcen::CheckActivateStatus()
 {
@@ -1834,8 +1820,6 @@ void matcen::DoRenderFrame()
 	}
 }
 
-#endif // NEWEDITOR
-
 char matcen::GetCreationEffect()
 {
 	return m_creation_effect;
@@ -2114,8 +2098,6 @@ void DestroyAllMatcens()
 	Num_matcens = 0;
 }
 
-#ifndef NEWEDITORSRC
-
 void DoMatcensFrame()
 {
 	int i;
@@ -2128,8 +2110,6 @@ void DoMatcensFrame()
 		}
 	}
 }
-
-#endif // NEWEDITOR
 
 void InitMatcensForLevel()
 {
@@ -2144,8 +2124,6 @@ void InitMatcensForLevel()
 	}
 }
 
-#ifndef NEWEDITORSRC
-
 void DoMatcensRenderFrame()
 {
 	int i;
@@ -2158,8 +2136,6 @@ void DoMatcensRenderFrame()
 		}
 	}
 }
-
-#endif // NEWEDITOR
 
 void DestroyMatcen(int id, bool f_resort = false)
 {

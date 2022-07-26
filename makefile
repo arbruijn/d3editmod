@@ -24,9 +24,11 @@ OBJS = d3.o ambient.o bnode.o boa.o gamepath.o lightmap_info.o \
 	polymodel.o object_lighting.o matcen.o trigger.o renderobject.o render.o postrender.o terrainrender.o \
 	sound.o weapon.o demofile.o diff.o player.o pagein.o scorch.o ai.o fireball.o viseffect.o doorway.o \
 	msafe.o $(DLLOBJ) msafeget.o multi.o powerup.o hud.o osiris.o game.o stringtable.o gamefont.o \
-	grtext/grfont.o grtext/grtext.o
+	grtext/grfont.o grtext/grtext.o inventory.o osiris_timer.o guidebot.o damage.o gamedll.o draw.o
 # matcen.o postrender.o
 # terrainrender.o terrainsearch.o
+
+OBJS += ui/uidraw.o
 
 OBJS += 3d/CLIPPER.o 3d/DRAW.o 3d/GLOBVARS.o 3d/INSTANCE.o 3d/POINTS.o 3d/SETUP.o
 # 3d/MATRIX.o
@@ -66,6 +68,7 @@ d3.html: $(patsubst %.o,%.em.o,$(OBJS))
 	emcc -O -g -sFULL_ES2  \
 		-L../gl4es/lib \
 		-sINITIAL_MEMORY=64mb --preload-file d3demo.hog -sUSE_SDL=2 -o $@ $^ -lGL
+	patch -p0 $@ < emlog.patch
 
 
 clean:

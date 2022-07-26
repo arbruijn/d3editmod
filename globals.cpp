@@ -535,18 +535,6 @@ void LoadLevelProgress(int step,float percent,const char *chunk)
 }
 
 
-//constructor
-Inventory::Inventory(void)
-{
-
-}
-
-//destructor
-Inventory::~Inventory(void)
-{
-	
-}
-
 void PrintDedicatedMessage(const char *fmt,...)
 {
 
@@ -1324,14 +1312,14 @@ void CGenericOLETarget::DrawText(int x,int y,CWnd *pWnd,char *text)
 
 // from Main\viseffect.cpp
 
-vis_effect *VisEffects=NULL;//[MAX_VIS_EFFECTS];
-int Highest_vis_effect_index = -1;
+//vis_effect *VisEffects=NULL;//[MAX_VIS_EFFECTS];
+//int Highest_vis_effect_index = -1;
 
 // Renders a vis effect
 // (stub)
-void DrawVisEffect (vis_effect *vis)
-{
-}
+//void DrawVisEffect (vis_effect *vis)
+//{
+//}
 
 
 #ifndef RELEASE
