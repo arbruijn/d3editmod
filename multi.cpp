@@ -12,3 +12,6 @@ void MultiSendObject(object *obj,ubyte a,ubyte b) {}
 void MultiSendDamageObject(object* obj, object* killer, float damage, int weapon_id) {}
 void MultiPlay3dSound(int a, int b, int c) {}
 void MultiSendDamagePlayer(int playernum,int weaponnum,int hit_type,float damage) {}
+void MultiSendRemoveObject(object *obj, ubyte ws) {}
+void MultiSendUnattach(object *obj) {}
+

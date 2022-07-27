@@ -24,7 +24,8 @@ OBJS = d3.o ambient.o bnode.o boa.o gamepath.o lightmap_info.o \
 	polymodel.o object_lighting.o matcen.o trigger.o renderobject.o render.o postrender.o terrainrender.o \
 	sound.o weapon.o demofile.o diff.o player.o pagein.o scorch.o ai.o fireball.o viseffect.o doorway.o \
 	msafe.o $(DLLOBJ) msafeget.o multi.o powerup.o hud.o osiris.o game.o stringtable.o gamefont.o \
-	grtext/grfont.o grtext/grtext.o inventory.o osiris_timer.o guidebot.o damage.o gamedll.o draw.o
+	grtext/grfont.o grtext/grtext.o inventory.o osiris_timer.o guidebot.o damage.o gamedll.o draw.o \
+	attach.o spew.o gameevent.o
 # matcen.o postrender.o
 # terrainrender.o terrainsearch.o
 

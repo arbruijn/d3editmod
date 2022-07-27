@@ -6,6 +6,8 @@
 #include "terrain.h"
 #include "renderer.h"
 #include "vclip.h"
+#include "findintersection.h"
+#include "physics.h"
 
 void CreateRandomSparks (int num_sparks,vector *pos,int roomnum,int which_index,float force_scalar) {
 }
@@ -15,6 +17,8 @@ ushort max_vis_effects;
 ushort *VisDeadList, *Vis_free_list;
 vis_effect *VisEffects;
 int Highest_vis_effect_index = -1;
+int NumVisDead;
+int Physics_vis_counter;
 
 void ShutdownVisEffects(void)
 {
@@ -161,7 +165,6 @@ void DrawVisEffect(vis_effect *vis)
 	float run_time;
 	ubyte alphatype;
 	short tex;
-	short FrameCount;
 	float height;
 	int id;
 	int visnum;
@@ -224,22 +227,16 @@ void DrawVisEffect(vis_effect *vis)
 	visnum = vis - VisEffects;
 	if (Fireballs[id].type == FT_BILLOW) {
 		rot_angle = FrameCount * 160 + visnum * 5000;
-	}
-	else if ((vis->flags & VF_ATTACHED) == 0) {
+	} else if (!(vis->flags & VF_ATTACHED)) {
 		if ((id == RUBBLE1_INDEX) || (id == RUBBLE2_INDEX)) {
 			rot_angle = FrameCount * 860 + visnum * 5000;
-		}
-		else if (id == SUN_CORONA_INDEX) {
+		} else if (id == SUN_CORONA_INDEX) {
 			rot_angle = (FrameCount + visnum * 10) * 500;
 			bmidx = rand();
-			size = (((float)((rand() % 10) / 100) + 1.0) * (float)size);
-		}
-		else {
-										/* (visnum * 5000) % 65536 */
-			rot_angle = (angle)((visnum * 0x271 & 0x10001fffU) << 3);
-		}
-	}
-	else {
+			size *= (rand() % 10) / 100.0f + 1;
+		} else
+			rot_angle = (visnum * 5000) % 65536;
+	} else {
 		rot_angle = 0;
 	}
 	visfrac = run_time / vis->lifetime;
@@ -247,8 +244,8 @@ void DrawVisEffect(vis_effect *vis)
 		visfrac = run_time - (int)run_time;
 	if (visfrac >= 1)
 		visfrac = 0.99999;
-	if ((vis->flags & VF_EXPAND) != 0) {
-		size = (vis->size * 0.5 + visfrac * vis->size * 0.5);
+	if (vis->flags & VF_EXPAND) {
+		size = vis->size * 0.5 + visfrac * vis->size * 0.5;
 	}
 	if (id == SMOKE_TRAIL_INDEX) {
 		tex = vis->custom_handle;
@@ -258,42 +255,33 @@ void DrawVisEffect(vis_effect *vis)
 			vclip = GameVClips + GameTextures[tex].bm_handle;
 			bmidx = vclip->frames[(int)(vclip->num_frames * visfrac)];
 		}
-	}
-	else {
-		if (id == SPRAY_INDEX) {
-			vclip = GameVClips + vis->custom_handle;
+	} else if (id == SPRAY_INDEX) {
+		vclip = GameVClips + vis->custom_handle;
+		bmidx = vclip->frames[(int)(vclip->num_frames * visfrac)];
+	} else if (id == CUSTOM_EXPLOSION_INDEX || id == PARTICLE_INDEX) {
+		visnum = vis->custom_handle;
+		if (GameTextures[visnum].flags & TF_ANIMATED) {
+			vclip = GameVClips + GameTextures[visnum].bm_handle;
 			bmidx = vclip->frames[(int)(vclip->num_frames * visfrac)];
-		}
-		else if ((id == CUSTOM_EXPLOSION_INDEX) || (id == PARTICLE_INDEX)) {
-			visnum = (int)vis->custom_handle;
-			if ((GameTextures[visnum].flags & 0x40) != 0) {
-				vclip = GameVClips + GameTextures[visnum].bm_handle;
-				bmidx = vclip->frames[(int)(vclip->num_frames * visfrac)];
-			} else
-				bmidx = GetTextureBitmap(visnum,0,false);
-		}
-		else if (Fireballs[id].type == FT_SPARK) {
-			size *= 1.0 - visfrac;
-			bmidx = Fireballs[id].bm_handle;
-		}
-		else if (id == SUN_CORONA_INDEX || id || MUZZLE_FLASH_INDEX ||
+		} else
+			bmidx = GetTextureBitmap(visnum,0,false);
+	} else if (Fireballs[id].type == FT_SPARK) {
+		size *= 1.0 - visfrac;
+		bmidx = Fireballs[id].bm_handle;
+	} else if (id == SUN_CORONA_INDEX || id == MUZZLE_FLASH_INDEX ||
 		id == RUBBLE1_INDEX || id == RUBBLE2_INDEX) {
-				bmidx = Fireballs[id].bm_handle;
-		} else {
-			 vclip = GameVClips + Fireballs[id].bm_handle;
-				bmidx = vclip->frames[(int)(vclip->num_frames * visfrac)];
-		}
+		bmidx = Fireballs[id].bm_handle;
+	} else {
+		vclip = GameVClips + Fireballs[id].bm_handle;
+		bmidx = vclip->frames[(int)(vclip->num_frames * visfrac)];
 	}
 	if ((Fireballs[id].type == FT_SMOKE) && visfrac > 0.3) {
-		height = (visfrac - 0.3) * 1.428571;
-		if ((vis->flags & VF_REVERSE) == 0) {
-			size = ((height * 2.3 + 1.0) * (float)size);
-		}
-		else {
-			size = ((float)size / (height * 2.3 + 1.0));
-		}
+		height = (visfrac - 0.3) / 0.7f;
+		if (!(vis->flags & VF_REVERSE))
+			size *= height * 2.3 + 1.0;
+		else
+			size /= height * 2.3 + 1.0;
 	}
-	id = vis->id;
 	if (((id == SMOKE_TRAIL_INDEX) || (id == CUSTOM_EXPLOSION_INDEX)) ||
 		 (id == PARTICLE_INDEX)) {
 		if (GameTextures[vis->custom_handle].flags & TF_SATURATE) {
@@ -364,3 +352,130 @@ void DrawVisEffect(vis_effect *vis)
 	rend_SetZBufferWriteMask(1);
 	rend_SetWrapType(WT_WRAP);
 }
+
+void VisEffectDelete(int visnum)
+{
+	VisEffectUnlink(visnum);
+	VisEffects[visnum].type = 0;
+	VisEffects[visnum].roomnum = -1;
+	VisEffectFree(visnum);
+}
+
+void VisEffectDeleteDead(void)
+{
+	for (int i = 0; i < NumVisDead; i++)
+		VisEffectDelete(VisDeadList[i]);
+	NumVisDead = 0;
+}
+
+
+void VisEffectSetDeadFlag(vis_effect *vis)
+{
+	if (!(vis->flags & VF_DEAD) && vis->type) {
+		vis->flags |= VF_DEAD;
+		VisDeadList[NumVisDead] = vis - VisEffects;
+		NumVisDead++;
+	}
+}
+
+void VisEffectUnlink(int visnum)
+{
+	vis_effect *vis = VisEffects + visnum;
+	
+	if (vis->roomnum & ROOMNUM_CELLNUM_FLAG)
+		return;
+	if (vis->prev == -1)
+		Rooms[vis->roomnum].vis_effects = vis->next;
+	else
+		VisEffects[vis->prev].next = vis->next;
+	if (vis->next != -1)
+		VisEffects[vis->next].prev = vis->prev;
+	vis->roomnum = -1;
+}
+
+void VisEffectRelink(int visnum,int roomnum)
+{
+	VisEffectUnlink(visnum);
+	VisEffectLink(visnum,roomnum);
+}
+
+int VisEffectFree(int visnum)
+{
+	Vis_free_list[--Num_vis_effects] = visnum;
+	VisEffects[visnum].type = 0;
+	if (visnum == Highest_vis_effect_index)
+		while (Highest_vis_effect_index > 0 && VisEffects[Highest_vis_effect_index].type)
+			Highest_vis_effect_index--;
+	return 1;
+}
+
+void do_vis_physics_sim(vis_effect *vis)
+{
+	vector startpos;
+	fvi_query fq;
+	fvi_info hit_info;
+	int phys_flags;
+	int hit;
+	
+	startpos = vis->pos;
+	if ((vis->flags & VF_DEAD) || Frametime <= 0)
+		return;
+	if (abs(vis->velocity.x) < 1e-6 && abs(vis->velocity.y) < 1e-6 && abs(vis->velocity.z) < 1e-6 &&
+		!(vis->phys_flags & PF_GRAVITY))
+		return;
+	phys_flags = vis->phys_flags;
+	if (phys_flags & PF_FIXED_VELOCITY) {
+		vector move = vis->velocity * Frametime;
+		vis->pos += move;
+	} else {
+		float gravity = phys_flags & PF_GRAVITY ? Gravity_strength :
+			phys_flags & PF_REVERSE_GRAVITY ? -Gravity_strength : 0;
+		if (vis->mass > 0 && vis->drag > 0) {
+			float mass = vis->mass, drag = vis->drag;
+			float eval = exp(-(drag / mass * Frametime));
+			vector force_m = {0, gravity * mass, 0};
+			vector velmove = (vis->velocity - force_m / drag) * (mass / drag) * (1 - eval);
+			vis->pos += force_m / drag * Frametime + velmove;
+			vis->velocity = (vis->velocity - force_m / drag) * eval + force_m / drag;
+		} else {
+			vector force_t = {0, gravity * Frametime, 0};
+			vis->pos += vis->velocity * Frametime + force_t * 0.5 * Frametime;
+			vis->velocity += force_t;
+		}
+	}
+	if (!(vis->phys_flags & PF_NO_COLLIDE)) {
+		Physics_vis_counter++;
+		fq.startroom = vis->roomnum;
+		fq.p0 = &startpos;
+		fq.p1 = &vis->pos;
+		fq.rad = 0.0;
+		fq.thisobjnum = -1;
+		fq.ignore_obj_list = NULL;
+		fq.flags = FQ_ONLY_DOOR_OBJ | FQ_IGNORE_WALLS | FQ_CHECK_OBJS; 
+		hit = fvi_FindIntersection(&fq,&hit_info,false);
+		if ((hit == 0) && (hit_info.hit_room != -1)) {
+			if (hit_info.hit_room != vis->roomnum)
+				VisEffectRelink(vis - VisEffects,hit_info.hit_room);
+		} else
+			VisEffectDelete(vis - VisEffects);
+	}
+}
+
+void VisEffectMoveOne(vis_effect *vis)
+{
+	if (vis->flags & VF_USES_LIFELEFT)
+		vis->lifeleft -= Frametime;
+	if (vis->movement_type == MT_PHYSICS)
+		do_vis_physics_sim(vis);
+	if ((vis->flags & VF_USES_LIFELEFT) && vis->lifeleft < 0)
+		VisEffectSetDeadFlag(vis);
+	//...
+}
+
+void VisEffectMoveAll()
+{
+	for (int i = 0; i <= Highest_vis_effect_index; i++)
+		if (VisEffects[i].type)
+			VisEffectMoveOne(VisEffects + i);
+}
+

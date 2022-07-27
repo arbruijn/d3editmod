@@ -23,5 +23,7 @@ void MultiSendClientInventoryUseItem(int type,int id);
 void MultiSendRequestCountermeasure(int objnum,int weaponnum);
 void MultiSendDamageObject(object *obj,object *killer,float damage,int weapon_id);
 void MultiSendDamagePlayer(int playernum,int weaponnum,int hit_type,float damage);
+void MultiSendRemoveObject(object *obj, ubyte ws);
+void MultiSendUnattach(object *obj);
 
 #endif

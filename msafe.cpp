@@ -12,6 +12,7 @@
 #include "hlsoundlib.h"
 #include "sounds.h"
 #include "levelgoal.h"
+#include "spew.h"
 
 int GetPlayerSlot(int objnum);
 void D3MusicSetRegion(short index,short unk) {}
@@ -81,6 +82,8 @@ void msafe_CallFunction(ubyte type,msafe_struct *mstruct)
 	portal *portal;
 	int roomnum;
 	ubyte soundnum;
+	int gunpoint;
+	spew_info spew;
 	
 	if ((Demo_flags == 2) && !Demo_call_ok)
 		return;
@@ -432,70 +435,59 @@ LAB_00490fb0:
 			ok = false;
 		}
 		break;
+#endif
 	case MSAFE_OBJECT_START_SPEW:
 		obj = ObjGet(mstruct->objhandle);
 		if (obj == NULL) {
 			return;
 		}
-		cVar5 = mstruct->gunpoint;
-		if (cVar5 == -2) {
+		gunpoint = mstruct->gunpoint;
+		if (gunpoint == -2) {
 			obj = ObjGet(mstruct->objhandle);
 			if (obj == NULL) break;
-			spew.field2_0x2 = '\0';
-			spew.pos.x = (obj->pos).x;
-			spew.pos.y = (obj->pos).y;
-			spew.pos.z = (obj->pos).z;
-			spew.orient.x = (obj->orient).uvec.x;
-			spew.orient.y = (obj->orient).uvec.y;
-			spew.orient.z = (obj->orient).uvec.z;
+			spew.is_obj = false;
+			spew.pos = obj->pos;
+			spew.dir = obj->orient.uvec;
 			spew.roomnum = obj->roomnum;
-		}
-		else if (cVar5 == -1) {
+		} else if (gunpoint == -1) {
 			obj = ObjGet(mstruct->objhandle);
 			if (obj == NULL) break;
-			spew.field2_0x2 = '\0';
-			spew.pos.x = (obj->pos).x;
-			spew.pos.y = (obj->pos).y;
-			spew.pos.z = (obj->pos).z;
-			spew.orient.x = (obj->orient).fvec.x;
-			spew.orient.y = (obj->orient).fvec.y;
-			spew.orient.z = (obj->orient).fvec.z;
+			spew.is_obj = false;
+			spew.pos = obj->pos;
+			spew.dir = obj->orient.fvec;
 			spew.roomnum = obj->roomnum;
+		} else {
+			spew.obj.handle = mstruct->objhandle;
+			spew.is_obj = true;
+			spew.obj.gun = gunpoint;
 		}
-		else {
-			spew.pos.x = (float)mstruct->objhandle;
-			spew.field2_0x2 = '\x01';
-			spew.pos.y = (float)(int)cVar5;
-		}
-		spew.random = (undefined *)(uint)mstruct->random;
-		spew.phys_info = (int)mstruct->phys_info;
-		spew.effect_type = (int)mstruct->effect_type;
+		spew.random = mstruct->random;
+		spew.phys_info = mstruct->phys_info;
+		spew.effect_type = mstruct->effect_type;
 		spew.interval = mstruct->interval;
-		spew._2_2_ = CONCAT11(mstruct->is_real != '\0',spew.field2_0x2);
+		spew.is_real = mstruct->is_real != 0;
 		spew.drag = mstruct->drag;
 		spew.size = mstruct->size;
 		spew.mass = mstruct->mass;
 		spew.longevity = mstruct->longevity;
 		spew.lifetime = mstruct->lifetime;
 		spew.speed = mstruct->speed;
-		if (((Game_mode & 0x24) == 0) || (Netgame_local_role != 0)) {
-			spew_id = SpewCreate(&spew);
-			mstruct->id = spew_id;
-		}
-		else {
-			roomnum = SpewCreate(&spew);
-			Server_spew_list[mstruct->id] = (ushort)roomnum & 0xff;
+		if (((Game_mode & 0x24) == 0) || (Netgame.local_role != 0)) {
+			mstruct->id = SpewCreate(&spew);
+		} else {
+			Server_spew_list[mstruct->id] = SpewCreate(&spew) & 0xff;
 		}
 		break;
 	case MSAFE_OBJECT_STOP_SPEW:
-		if (((Game_mode & 0x24) == 0) || (Netgame_local_role != 0)) {
+		if (((Game_mode & 0x24) == 0) || (Netgame.local_role != 0)) {
 			SpewClearEvent(mstruct->id,true);
 		}
 		else {
-			SpewClearEvent(SpewEffects[mstruct->id].field10_0x2c,true);
+			SpewClearEvent(SpewEffects[mstruct->id].handle,true);
 			Server_spew_list[mstruct->id] = 0xffff;
 		}
 		break;
+#if 0
 	case MSAFE_OBJECT_GHOST:
 		obj = ObjGet(mstruct->objhandle);
 		if (obj == NULL) {
@@ -563,7 +555,7 @@ LAB_00490fb0:
 		if (ok) {
 			obj->flags = mstruct->flags;
 		}
-		if (((Game_mode & 0x24) != 0) && (Netgame_local_role == 0)) {
+		if (((Game_mode & 0x24) != 0) && (Netgame.local_role == 0)) {
 			obj->flags = obj->flags | OF_SERVER_OBJECT;
 		}
 		break;
@@ -1117,7 +1109,7 @@ set_slot:
 		PlayerSetShipPermission(-1,mstruct->name,mstruct->state != '\0');
 		break;
 	case MSAFE_MISC_LEVELGOAL:
-		if (((Game_mode & 0x24) != 0) && (Netgame_local_role == 0)) {
+		if (((Game_mode & 0x24) != 0) && (Netgame.local_role == 0)) {
 			local_184 = (void *)0xffffffff;
 			levelgoals::GoalSetName((levelgoals *)&Level_goals,mstruct->index,mstruct->message);
 			levelgoals::GoalStatus
@@ -1309,7 +1301,7 @@ LAB_00492fb0:
 	}
 #if 0
 	if ((Demo_flags == 1 && ok) ||
-		(ok && (Game_mode & 0x24) && Netgame_local_role == 1))
+		(ok && (Game_mode & 0x24) && Netgame.local_role == 1))
 		MultiSendMSafeFunction(type,mstruct);
 #endif		
 }

@@ -7,3 +7,4 @@ void DemoWritePersistantHUDMessage(ddgr_color color,int x, int y, float time, in
 }
 
 void DemoWrite3DSound(int a, int b, int c) {}
+void DemoWriteUnattachObj(object *obj) {}

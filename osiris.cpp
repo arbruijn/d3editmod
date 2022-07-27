@@ -556,3 +556,5 @@ void osipf_ObjKill(int handle,int killer_handle,float damage,int flags,float min
 	else
 		KillObject(obj,killer,damage);
 }
+
+void Osiris_DetachScriptsFromObject(object *obj) {}

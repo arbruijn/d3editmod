@@ -397,10 +397,6 @@ void FireWeaponFromPlayer(object *objp,int weapon_type,int down_count,bool down_
 	}
 }
 
-int rand_small_explosion_index() {
-	return ps_rand() % 2 ? SMALL_EXPLOSION_INDEX2 : SMALL_EXPLOSION_INDEX;
-}
-
 void DoConcussiveForce(object *weapon,int parent_handle,float amount) {}
 
 void MakeShockwave(object *weapon,int parent_handle)
@@ -459,18 +455,9 @@ int CreateGravityField(vector *pos,int roomnum,float size,float time,int parent_
 
 void DoWeaponExploded(object *wpnobj,vector *dir,vector *pos,object *target)
 {
-	ushort uVar1;
-	ushort r;
-	ushort g;
 	int visnum;
-	uint bm;
-	int iVar2;
-	int b;
-	int uVar3;
-	uint uVar4;
 	vis_effect *vis;
-	ushort weapon_id;
-	ushort weapon_id1;
+	int weapon_id;
 	int wflags;
 	weapon *w;
 
@@ -493,7 +480,7 @@ void DoWeaponExploded(object *wpnobj,vector *dir,vector *pos,object *target)
 	if ((wflags & WF_PLANAR_BLAST) == 0) {
 		if ((wflags & WF_BLAST_RING) == 0) {
 			if (w->explode_image_handle <= 0) {
-				VisEffectCreate(1,rand_small_explosion_index(),wpnobj->roomnum,pos);
+				VisEffectCreate(1,GetRandomSmallExplosion(),wpnobj->roomnum,pos);
 			} else {
 				visnum = VisEffectCreate(1,CUSTOM_EXPLOSION_INDEX,wpnobj->roomnum,pos);
 				if (visnum < 0)
@@ -523,8 +510,7 @@ void DoWeaponExploded(object *wpnobj,vector *dir,vector *pos,object *target)
 	}
 	else if ((wflags & WF_BLAST_RING) == 0) {
 		if (w->explode_image_handle < 1) {
-			uVar3 = rand_small_explosion_index();
-			visnum = VisEffectCreate(1,uVar3,wpnobj->roomnum,pos);
+			visnum = VisEffectCreate(1,GetRandomSmallExplosion(),wpnobj->roomnum,pos);
 			if (visnum < 0)
 				return;
 		} else {
@@ -541,10 +527,10 @@ void DoWeaponExploded(object *wpnobj,vector *dir,vector *pos,object *target)
 				w->lighting_info.green_light2 * 255, w->lighting_info.blue_light2 * 255) | OPAQUE_FLAG16;
 		}
 		vis = VisEffects + visnum;
-		vis->flags = vis->flags | VF_PLANAR;
+		vis->flags |= VF_PLANAR;
 		vis->end_pos = *dir;
 		if ((w->flags & WF_EXPAND) != 0)
-			vis->flags = vis->flags | VF_EXPAND;
+			vis->flags |= VF_EXPAND;
 	}
 	else {
 		visnum = VisEffectCreate(1,BLAST_RING_INDEX,wpnobj->roomnum,pos);

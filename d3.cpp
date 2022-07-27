@@ -65,6 +65,10 @@ int WinHeight = 480;
 #include "hud.h"
 #include "uidraw.h"
 #include "damage.h"
+#include "gamedll.h"
+#include "attach.h"
+#include "gameevent.h"
+#include "fireball.h"
 
 #include "dll.h"
 #define INCLUDED_FROM_D3
@@ -143,6 +147,7 @@ void InitD3Systems2() {
 	// Systems2
 
 	InitObjects();
+	InitFireballs();
 	InitTriggers();
 }
 
@@ -276,11 +281,19 @@ float timer_GetTime() {
 	return SDL_GetTicks() / 1000.0f;
 }
 
-int cur_time;
-void UpdateFrametime() {
+int last_timer;
+int timer_paused;
+void CalcFrameTime() {
+	if (timer_paused)
+		return;
 	int t = SDL_GetTicks();
-	Frametime = (t - cur_time) / 1000.0f;
-	cur_time = t;
+	Frametime = (t - last_timer) / 1000.0f;
+	last_timer = t;
+}
+void InitFrameTime()
+{
+	last_timer = SDL_GetTicks();
+	timer_paused = 0;
 }
 
 void GameRenderWorld(object *viewer,vector *viewer_eye,int viewer_roomnum,matrix *viewer_orient,
@@ -348,10 +361,12 @@ void GameRenderFrame() {
 	GameDrawMainView();
 	GameDrawHud();
 
+	#if 0
 	StartFrame(false);
 	ui_DrawSetAlpha(32);
 	ui_DrawRect(GR_WHITE, 0, 0, WinWidth, WinHeight);
 	EndFrame();
+	#endif
 
 
 	SDL_GL_SwapWindow(Window);
@@ -787,9 +802,6 @@ void ObjDoFrame(object *obj)
 	}
 }
 
-
-/* WARNING: Could not reconcile some variable overlaps */
-
 void ObjDeleteDead()
 {
 	tOSIRISEventInfo info;
@@ -797,12 +809,10 @@ void ObjDeleteDead()
 		object *obj = Objects + objnum;
 		if (obj->type == OBJ_NONE || !(obj->flags & OF_DEAD))
 			continue;
-		#if 0
-		if ((*poVar5 & OF_INFORM_DESTROY_TO_LG) != OF_NONE) {
-			levelgoals::Inform((levelgoals *)&Level_goals,'\x02',0x400,poVar5[2]);
-		}
-		if ((*poVar5 & OF_INPLAYERINVENTORY) != OF_NONE) {
-			InventoryRemoveObject(poVar5[2]);
+		if (obj->flags & OF_INFORM_DESTROY_TO_LG)
+			Level_goals.Inform(LIT_OBJECT,LGF_COMP_DESTROY,obj->handle);
+		if (obj->flags & OF_INPLAYERINVENTORY) {
+			InventoryRemoveObject(obj->handle);
 		}
 		if (obj->type == OBJ_DUMMY) {
 			ObjUnGhostObject(objnum);
@@ -817,27 +827,21 @@ void ObjDeleteDead()
 			UnattachFromParent(obj);
 			UnattachChildren(obj);
 		}
-		#endif
 		info.evt_destroy.is_dying = 1;
 		Osiris_CallEvent(obj,EVT_DESTROY,&info);
-		#if 0
-		if ((Game_mode & 0x24) != 0) {
-			DLLInfo[0] = poVar5[2];
-			DLLInfo[1] = DLLInfo[0];
-			CallGameDLL(0x515,(int)DLLInfo);
+		if ((Game_mode & 0x24)) {
+			DLLInfo.me_handle = obj->handle;
+			DLLInfo.it_handle = DLLInfo.me_handle;
+			CallGameDLL(EVT_GAMEOBJDESTROYED,&DLLInfo);
 		}
 		Osiris_DetachScriptsFromObject(obj);
-		if (((Game_mode & 0x24) != 0) && (Netgame_local_role != 0)) {
-			if ((*poVar5 & OF_SEND_MULTI_REMOVE_ON_DEATH) == OF_NONE) {
-				if ((*poVar5 & OF_SEND_MULTI_REMOVE_ON_DEATHWS) == OF_NONE) goto LAB;
-				uVar7 = 1;
-			}
-			else {
-				uVar7 = 0;
-			}
-			MultiSendRemoveObject(obj,uVar7);
+		if ((Game_mode & 0x24) && Netgame.local_role) {
+			if (obj->flags & OF_SEND_MULTI_REMOVE_ON_DEATH)
+				MultiSendRemoveObject(obj,0);
+			else if (obj->flags & OF_SEND_MULTI_REMOVE_ON_DEATHWS)
+				MultiSendRemoveObject(obj,1);
 		}
-		LAB:
+		#if 0
 		oVar1 = obj->type;
 		if ((oVar1 == OBJ_ROBOT) &&
 			 ((*(ushort *)((int)poVar5 + -2) == 2 || (*(ushort *)((int)poVar5 + -2) == 0)))) {
@@ -856,13 +860,14 @@ void ObjDeleteDead()
 		if (obj->type != OBJ_PLAYER)
 			ObjDelete(objnum);
 	}
-	//VisEffectDeleteDead();
+	VisEffectDeleteDead();
 }
 
 void ObjDoFrameAll() {
 	for (int i = 0; i <= Highest_object_index; i++)
 		if (Objects[i].type != OBJ_NONE)
 			ObjDoFrame(&Objects[i]);
+	VisEffectMoveAll();
 	ObjDeleteDead();
 }
 
@@ -874,6 +879,9 @@ void Jump(int num) {
 			break;
 		case 2:
 			pos = {4040.13721, 239.690414, 2254.43262};roomnum=73;orient={{1,0,0},{0,1,0},{0,0,1}};//{{-0.0300339796, -0.00902694371,  0.181316838}, {0.0250956547, 0.310730785,  0.00479463348}, {-0.189535052,  0.0344414338, -0.00805729348}};
+			break;
+		case 3:
+			pos = { 2052.465088, 269.267487, 2491.100342};roomnum= 28;orient = {{0.560977578, 0, -0.816692352}, {0, 1, 0}, {0.816692352, 0, 0.560977578}};
 			break;
 	}
 	if (roomnum != -1)
@@ -952,6 +960,7 @@ void DoControls() {
 	FireWeaponFromPlayer(obj, 1, pressed[maplk(SDLK_SPACE)] || mbpressed[SDL_BUTTON_RIGHT], 0, 0);
 	if (justpressed['1']) Jump(1);
 	if (justpressed['2']) Jump(2);
+	if (justpressed['3']) Jump(3);
 }
 
 void GameFrame() {
@@ -965,7 +974,8 @@ void GameFrame() {
 	DoControls();
 
 	GameRenderFrame();
-	UpdateFrametime();
+	ProcessNormalEvents();
+	CalcFrameTime();
 	Gametime += Frametime;
 }
 
@@ -1152,7 +1162,20 @@ void start() {
 		fprintf(stderr, "loadlevel failed\n");
 
 	PageInAllData();
+	//Detail_settings.Bumpmapping_enabled = rend_SupportsBumpmapping() != 0;
+	MakeBOA();
+	ComputeAABB(true);
+	ClearAllEvents();
+	ClearRoomChanges();
+	//ResetMarkers();
 	ResetScorches();
+	//ResetWaypoint();
+	//ResetLightGlows();
+	DoorwayDeactivateAll();
+	for (int i = 0; i <= Highest_object_index; i++)
+		if (Objects[i].type == OBJ_VIEWER)
+			ObjDelete(i);
+	//DeleteAmbientObjects();	
 	AIInitAll();
 	
 	InitMatcensForLevel();
@@ -1165,7 +1188,10 @@ void start() {
 	InitPlayerNewShip(0, 1);
 	InitPlayerNewLevel(0);
 
-	#if 1
+	Gametime = 0;
+	InitFrameTime();
+
+	#if 0 && !defined(__EMSCRIPTEN__)
 	//vector pos = {2047.683105, 276.381744, 2471.472900};int roomnum = 29;
 	//vector pos = {2052.6709, 273.41095, 2126.76294};int roomnum = 34;
 	//vector pos = { 2052.465088, 269.267487, 2491.100342};int roomnum= 28;matrix orient = {{0.560977578, 0, -0.816692352}, {0, 1, 0}, {0.816692352, 0, 0.560977578}};
@@ -1216,7 +1242,7 @@ int main(int argc, char **argv) {
 	#ifdef __EMSCRIPTEN__
 	initialize_gl4es();
 	#endif
-	#if 0
+	#ifdef __EMSCRIPTEN__
 	ddio_MakePath(hogpath,".","d3demo.hog",NULL);
 	is_demo = 1;
 	#else

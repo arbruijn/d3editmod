@@ -7,6 +7,7 @@
 #include "weapon.h"
 #include "osiris_dll.h"
 #include "objscript.h"
+#include "player.h"
 
 Inventory::Inventory()
 {
@@ -91,7 +92,7 @@ bool Inventory::AddObject(int object_handle,int flags,char *description)
 	object *obj;
 	inven_item *item;
 	char *str;
-	bool bVar5;
+	bool is_dummy;
 	
 	if (this->count >= 10)
 		return false;
@@ -99,7 +100,8 @@ bool Inventory::AddObject(int object_handle,int flags,char *description)
 	if (obj) {
 		if (obj->flags & OF_INFORM_DESTROY_TO_LG)
 			Level_goals.Inform('\x02',0x400,obj->handle);
-		if (obj->type == OBJ_DUMMY)
+		is_dummy = obj->type == OBJ_DUMMY;
+		if (is_dummy)
 			ObjUnGhostObject(obj - Objects);
 		if (!this->count) {
 			item = new inven_item();
@@ -141,7 +143,7 @@ bool Inventory::AddObject(int object_handle,int flags,char *description)
 		if (flags & 4)
 			item->iflags |= INVF_MISSIONITEM;
 		obj->flags = obj->flags | OF_INPLAYERINVENTORY;
-		if (bVar5 || (Game_mode & 0x24) == 0 || Netgame.local_role == 1) {
+		if (is_dummy || (Game_mode & 0x24) == 0 || Netgame.local_role == 1) {
 			ObjGhostObject(Objects - obj);
 			if ((Game_mode & 0x24) != 0 && (Netgame.local_role == 1))
 				MultiSendGhostObject(obj,true);
@@ -874,4 +876,20 @@ void CreateCountermeasureFromObject(object *obj,int weapon_id)
 		MultiSendRequestCountermeasure(obj - Objects, weapon_id);
 	else						
 		FireWeaponFromObject(obj,weapon_id,5,false,false);
+}
+
+void InventoryRemoveObject(int objhandle)
+{
+	object *obj;
+	
+	obj = ObjGet(objhandle);
+	if (!obj)
+		return;
+	if (!(obj->flags & OF_INPLAYERINVENTORY))
+		return;
+	for (int i = 0; i < MAX_PLAYERS; i++)
+		if (Players[i].inventory.CheckItem(objhandle,-1)) {
+			Players[i].inventory.Remove(objhandle,-1);
+			break;
+		}
 }
