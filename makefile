@@ -18,14 +18,18 @@ CFLAGS = $(CXXFLAGS)
 
 all: d3
 
-OBJS = d3.o ambient.o bnode.o boa.o gamepath.o lightmap_info.o \
-	LoadLevel.o room.o ship.o special_face.o \
-	terrain.o vclip.o door.o levelgoal.o object.o terrainsearch.o \
-	polymodel.o object_lighting.o matcen.o trigger.o renderobject.o render.o postrender.o terrainrender.o \
-	sound.o weapon.o demofile.o diff.o player.o pagein.o scorch.o ai.o fireball.o viseffect.o doorway.o \
-	msafe.o $(DLLOBJ) msafeget.o multi.o powerup.o hud.o osiris.o game.o stringtable.o gamefont.o \
-	grtext/grfont.o grtext/grtext.o inventory.o osiris_timer.o guidebot.o damage.o gamedll.o draw.o \
-	attach.o spew.o gameevent.o
+OBJS = main/d3.o main/ambient.o main/bnode.o main/boa.o main/gamepath.o main/lightmap_info.o \
+	main/loadlevel.o main/room.o main/ship.o main/special_face.o \
+	main/terrain.o main/vclip.o main/door.o main/levelgoal.o main/object.o main/terrainsearch.o \
+	model/polymodel.o main/object_lighting.o main/matcen.o main/trigger.o main/renderobject.o \
+	main/render.o main/postrender.o main/terrainrender.o \
+	sound/hlsoundlib.o \
+	main/weapon.o main/demofile.o main/difficulty.o main/player.o main/pagein.o main/scorch.o \
+	main/ai.o main/fireball.o main/viseffect.o main/doorway.o \
+	main/msafe.o $(DLLOBJ) main/msafeget.o main/multi.o main/powerup.o \
+	main/hud.o main/osiris_predefs.o main/game.o main/localization.o main/gamefont.o \
+	grtext/grfont.o grtext/grtext.o main/inventory.o main/osiris_timer.o main/guidebot.o main/damage.o \
+	main/gamedll.o main/draw.o main/attach.o main/spew.o main/gameevent.o
 # matcen.o postrender.o
 # terrainrender.o terrainsearch.o
 
@@ -54,7 +58,7 @@ OBJS += linux/lnxdebug.o linux/lnxlib.o
 
 OBJS += globals.o util.o
 
-OBJS += manage.o
+OBJS += manage/manage.o
 
 d3: $(OBJS)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS)
