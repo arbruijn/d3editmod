@@ -29,7 +29,7 @@ OBJS = main/d3.o main/ambient.o main/bnode.o main/boa.o main/gamepath.o main/lig
 	main/msafe.o $(DLLOBJ) main/msafeget.o main/multi.o main/powerup.o \
 	main/hud.o main/osiris_predefs.o main/game.o main/localization.o main/gamefont.o \
 	grtext/grfont.o grtext/grtext.o main/inventory.o main/osiris_timer.o main/guidebot.o main/damage.o \
-	main/gamedll.o main/draw.o main/attach.o main/spew.o main/gameevent.o
+	main/gamedll.o main/draw.o main/attach.o main/spew.o main/gameevent.o main/cockpit.o
 # matcen.o postrender.o
 # terrainrender.o terrainsearch.o
 

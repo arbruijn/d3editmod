@@ -69,6 +69,7 @@ int WinHeight = 480;
 #include "attach.h"
 #include "gameevent.h"
 #include "fireball.h"
+#include "cockpit.h"
 
 #include "dll.h"
 #define INCLUDED_FROM_D3
@@ -1180,7 +1181,10 @@ void start() {
 	
 	InitMatcensForLevel();
 
+	Players[Player_num].ship_index = 0;
+	InitCockpit(Players[Player_num].ship_index);
 
+	ResetReticle();
 
 	DeleteMultiplayerObjects();
 	setup_dll();
