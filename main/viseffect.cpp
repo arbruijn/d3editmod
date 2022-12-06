@@ -420,7 +420,7 @@ void do_vis_physics_sim(vis_effect *vis)
 	startpos = vis->pos;
 	if ((vis->flags & VF_DEAD) || Frametime <= 0)
 		return;
-	if (abs(vis->velocity.x) < 1e-6 && abs(vis->velocity.y) < 1e-6 && abs(vis->velocity.z) < 1e-6 &&
+	if (fabsf(vis->velocity.x) < 1e-6 && fabsf(vis->velocity.y) < 1e-6 && fabsf(vis->velocity.z) < 1e-6 &&
 		!(vis->phys_flags & PF_GRAVITY))
 		return;
 	phys_flags = vis->phys_flags;
