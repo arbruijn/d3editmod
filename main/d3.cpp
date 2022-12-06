@@ -1172,28 +1172,8 @@ void DeleteMultiplayerObjects()
 	}
 }
 
-
-void start() {
-	load_game_data(false);
-
-	#if 0
-	//int bm[3];
-	//load_and_chunk_bitmap_compr("mainmenu.ogf", &bm);
-	int bm = bm_AllocLoadFileBitmap("mainmenu.ogf",0,0);
-	if (bm == -1)
-		fprintf(stderr, "failed to load mainmenu.ogf\n");
-	chunked_bitmap ch_bm;
-	bm_CreateChunkedBitmap(bm,&ch_bm);
-	//draw_chbm(&ch_bm, 0, 0);
-	//rend_DrawSimpleBitmap(bm, 0, 0);
-	#endif
-
-	int level_lib_id = !is_demo && cf_OpenLibrary("missions/d3.mn3");
-	if (!cfexist("level1.d3l"))
-		fprintf(stderr, "level missing\n");
-	if (!LoadLevel("level1.d3l"))
-		fprintf(stderr, "loadlevel failed\n");
-
+void StartLevel()
+{
 	PageInAllData();
 	//Detail_settings.Bumpmapping_enabled = rend_SupportsBumpmapping() != 0;
 	MakeBOA();
@@ -1226,6 +1206,33 @@ void start() {
 
 	Gametime = 0;
 	InitFrameTime();
+}
+
+void start() {
+	load_game_data(false);
+
+	extern ushort Hud_stat_mask;
+	Hud_stat_mask = 0x3ffe;
+
+	#if 0
+	//int bm[3];
+	//load_and_chunk_bitmap_compr("mainmenu.ogf", &bm);
+	int bm = bm_AllocLoadFileBitmap("mainmenu.ogf",0,0);
+	if (bm == -1)
+		fprintf(stderr, "failed to load mainmenu.ogf\n");
+	chunked_bitmap ch_bm;
+	bm_CreateChunkedBitmap(bm,&ch_bm);
+	//draw_chbm(&ch_bm, 0, 0);
+	//rend_DrawSimpleBitmap(bm, 0, 0);
+	#endif
+
+	int level_lib_id = !is_demo && cf_OpenLibrary("missions/d3.mn3");
+	if (!cfexist("level1.d3l"))
+		fprintf(stderr, "level missing\n");
+	if (!LoadLevel("level1.d3l"))
+		fprintf(stderr, "loadlevel failed\n");
+
+	StartLevel();
 
 	#if 0 && !defined(__EMSCRIPTEN__)
 	//vector pos = {2047.683105, 276.381744, 2471.472900};int roomnum = 29;
