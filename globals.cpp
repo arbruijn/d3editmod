@@ -342,7 +342,7 @@ fireball Fireballs[NUM_FIREBALLS]=
 	{"Rocklette1.ogf",FT_EFFECT,TINY_TEXTURE,1.0f,2.0f},				// RUBBLE1_INDEX
 	{"Rocklette2.ogf",FT_EFFECT,TINY_TEXTURE,1.0f,2.0f},				// RUBBLE2_INDEX
 	{"Whiteball.ogf",FT_EFFECT,TINY_TEXTURE,1.0f,2.0f},					// WATER_SPLASH_INDEX
-	#if 0
+	#ifdef __EMSCRIPTEN__ // demo
 	{"Shatterbig.oaf",FT_EFFECT,SMALL_TEXTURE,1.0f,2.0f},				// SHATTER_INDEX
 	{"Shattersmall.oaf",FT_EFFECT,SMALL_TEXTURE,1.0f,2.0f}};			// SHATTER_INDEX2
 	#else

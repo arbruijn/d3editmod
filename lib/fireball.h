@@ -41,7 +41,11 @@
 // The lifetime of the blast ring
 #define DAMAGE_RING_TIME	1.5f
 
+#ifdef __EMSCRIPTEN__ // demo
+#define NUM_FIREBALLS	47
+#else
 #define NUM_FIREBALLS	52
+#endif
 
 typedef struct 
 {
