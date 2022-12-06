@@ -1,7 +1,6 @@
 #include "object.h"
 #include "physics.h"
-
-extern int Level_powerups_ignore_wind;
+#include "game.h"
 
 void PhysicsDoSimLinear(object *obj,vector *pos,vector *force,vector *velocity,vector *movement_vec,
 									vector *movement_pos,float sim_time,int count)
@@ -43,4 +42,78 @@ void PhysicsDoSimLinear(object *obj,vector *pos,vector *force,vector *velocity,v
 	}
 	if (have_wind)
 		*force -= wind_force;
+}
+
+void set_object_turnroll(object *obj,vector *rotvel,angle *turnroll)
+{
+	int maxrollrate;
+	float newroll;
+	angle oldroll;
+
+	newroll = -(rotvel->y * obj->mtype.phys_info.turnroll_ratio);
+	if (fabsf(newroll) > 32000)
+		newroll = newroll >= 0 ? 32000 : -32000;
+	float orgroll = newroll;
+	if (newroll <= -1)
+		newroll += 65535;
+	angle newang = newroll;
+	oldroll = *turnroll;
+	if (0 && oldroll != newang) {
+		int maxrollrate = Frametime * obj->mtype.phys_info.max_turnroll_rate;
+		int i = oldroll;
+		if (i > 32000)
+			i -= 65535;
+		int diff = orgroll - i;
+		if (abs(diff) > maxrollrate) {
+			*turnroll = diff < 1 ? oldroll - (short)maxrollrate : oldroll + (short)maxrollrate;
+			return;
+		}
+	}
+	*turnroll = newang;
+}
+
+bool PhysicsDoSimRot(object *obj,float frame_time,matrix *orient,vector *rotforce,vector *rotvel,
+               angle *turn_roll)
+{
+	if (obj->mtype.phys_info.flags & PF_FIXED_ROT_VELOCITY) {
+		angvec rot = {(angle)(frame_time * rotvel->x), (angle)(frame_time * rotvel->y), (angle)(frame_time * rotvel->z)};
+		matrix rotmat;
+		vm_AnglesToMatrix(&rotmat, rot.p, rot.h, rot.b);
+		matrix result = rotmat * *orient;
+		*orient = result;
+		vm_Orthogonalize(orient);
+		return true;
+	}
+	if (*turn_roll) {
+		matrix rotmat;
+		vm_AnglesToMatrix(&rotmat, 0, 0, -*turn_roll);
+		matrix result = *orient * rotmat;
+		*orient = result;
+	}
+	if (obj->mtype.phys_info.rotdrag > 0) {
+		if (!(obj->mtype.phys_info.flags & PF_USES_THRUST))
+			*rotforce = {0, 0, 0};
+		float mass = obj->mtype.phys_info.mass, drag = obj->mtype.phys_info.rotdrag;
+		if (!mass || !drag) {
+			*rotvel += *rotforce * frame_time;
+		} else {
+			float eval = exp(-(drag / mass * frame_time));
+			*rotvel = (*rotvel - *rotforce / drag) * eval + *rotforce / drag;
+		}
+	}
+	angvec rot = {(angle)(frame_time * rotvel->x), (angle)(frame_time * rotvel->y), (angle)(frame_time * rotvel->z)};
+	matrix rotmat;
+	vm_AnglesToMatrix(&rotmat, rot.p, rot.h, rot.b);
+	matrix result = *orient * rotmat;
+	*orient = result;
+	if (obj->mtype.phys_info.flags & PF_TURNROLL)
+		set_object_turnroll(obj,rotvel,turn_roll);
+	if (*turn_roll) {
+		matrix rotmat;
+		vm_AnglesToMatrix(&rotmat, 0, 0, *turn_roll);
+		matrix result = *orient * rotmat;
+		*orient = result;
+	}
+	vm_Orthogonalize(orient);
+	return true;
 }

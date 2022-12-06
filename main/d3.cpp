@@ -442,6 +442,7 @@ void do_physics_sim(object *obj) {
 	bool drag_modified = false;
 	vector last_pos = *pos;
 	fvi_query q;
+	bool did_rot = false;
 
 	if (obj->flags & (OF_DEAD | OF_ATTACHED))
 		return;
@@ -509,14 +510,15 @@ void do_physics_sim(object *obj) {
 
 	// FIXME drag vectors
 
-	for (;;) {
+	int max_count = obj->type == OBJ_PLAYER ? 9 : 5;
+	for (int count = 0; count < max_count; count++) {
 		vector frame_last_pos = *pos;
 		vector frame_last_vel = obj->mtype.phys_info.velocity;
 		matrix frame_last_orient = obj->orient;
 		vector frame_last_rotvel = obj->mtype.phys_info.rotvel;
 		angle frame_last_turnroll = obj->mtype.phys_info.turnroll;
 
-		//matrix new_orient = obj->orient;
+		matrix new_orient = obj->orient;
 		vector new_rotvel = obj->mtype.phys_info.rotvel;
 		vector new_vel = obj->mtype.phys_info.velocity;
 		angle new_turnroll = obj->mtype.phys_info.turnroll;
@@ -532,6 +534,14 @@ void do_physics_sim(object *obj) {
 
 		//d2_drag(obj, sim_time);
 		//obj->mtype.phys_info.rotvel /= obj->mtype.phys_info.drag * sim_time;
+		bool just_rot = false;
+		if ((!did_rot && !count) || obj->type == OBJ_CLUTTER) {
+			did_rot = true;
+			just_rot = true;
+			PhysicsDoSimRot(obj,sim_time,&new_orient,&obj->mtype.phys_info.rotthrust,&new_rotvel,&new_turnroll);
+			ObjSetOrient(obj,&new_orient);
+		}
+		#if 0
 		obj->mtype.phys_info.rotvel += obj->mtype.phys_info.rotthrust * 1000;
 		if (!VEC_ZERO(&obj->mtype.phys_info.rotvel)) {
 			angvec angs;
@@ -545,6 +555,7 @@ void do_physics_sim(object *obj) {
 			obj->orient = new_orient;
 			obj->mtype.phys_info.rotvel *= powf(1/obj->mtype.phys_info.drag, sim_time);
 		}
+		#endif
 		#if 0
 		obj->mtype.phys_info.velocity += obj->mtype.phys_info.thrust * 200;
 		vector vel = obj->mtype.phys_info.velocity;
@@ -604,6 +615,27 @@ void do_physics_sim(object *obj) {
 		//if (obj->type == OBJ_WEAPON)
 		//	printf("hit %d at %f %f %f %d vel %f %f %f\n", hit, XYZ(&hit_info.hit_pnt), hit_info.hit_room, XYZ(&hit_info.hit_velocity));
 
+		if (obj->type == OBJ_WEAPON && obj->ctype.laser_info.hit_status == 2) {
+			laser_info_s *li = &obj->ctype.laser_info;
+			vector *pnt = hit ? &li->hit_wall_pnt : &li->hit_pnt;
+			vector v1 = *pnt - obj->pos;
+			vector v2 = hit ? *pnt - hit_info.hit_face_pnt[0] : *pnt - hit_info.hit_pnt;
+			if (v1 * v2 <= 0) {
+				hit_info.hit_pnt = li->hit_pnt;
+				hit_info.hit_face_pnt[0] = li->hit_wall_pnt;
+				hit_info.hit_pnt = li->hit_pnt;
+				hit_info.hit_room = li->hit_room;
+				hit_info.hit_face_room[0] = li->hit_pnt_room;
+				hit_info.hit_wallnorm[0] = li->hit_wall_normal;
+				hit_info.hit_face[0] = li->hit_face;
+			}
+		}
+
+		if (just_rot) {
+			obj->mtype.phys_info.turnroll = hit_info.hit_turnroll;
+			obj->mtype.phys_info.rotvel = hit_info.hit_rotvel;
+		}
+		obj->mtype.phys_info.velocity = hit_info.hit_velocity;
 		if (hit) {
 			switch (hit) {
 				case HIT_WALL: {
@@ -638,7 +670,6 @@ void do_physics_sim(object *obj) {
 			}
 			vm_NormalizeVector(&hit_info.hit_wallnorm[0]);
 		}
-		obj->mtype.phys_info.velocity = hit_info.hit_velocity;
 		if (hit == HIT_OUT_OF_TERRAIN_BOUNDS) {
 			obj->flags |= OF_DEAD;
 			break;
@@ -946,12 +977,13 @@ void DoControls() {
 	}
 
 	object *obj = &Objects[0];
+	float full_rot = obj->mtype.phys_info.full_rotthrust;
 	float full_thrust = obj->mtype.phys_info.full_thrust;
-	obj->mtype.phys_info.rotthrust.x = -((pressed[maplk(SDLK_KP_2)] ? 1.0f : 0) - (pressed[maplk(SDLK_KP_8)] ? 1.0f : 0));
-	obj->mtype.phys_info.rotthrust.y = (pressed[maplk(SDLK_KP_6)] ? 1.0f : 0) - (pressed[maplk(SDLK_KP_4)] ? 1.0f : 0);
-	obj->mtype.phys_info.rotthrust.z = -((pressed[maplk(SDLK_KP_9)] ? 1.0f : 0) - (pressed[maplk(SDLK_KP_7)] ? 1.0f : 0));
-	obj->mtype.phys_info.rotthrust.x += -((pressed[maplk(SDLK_DOWN)] ? 1.0f : 0) - (pressed[maplk(SDLK_UP)] ? 1.0f : 0));
-	obj->mtype.phys_info.rotthrust.y += (pressed[maplk(SDLK_RIGHT)] ? 1.0f : 0) - (pressed[maplk(SDLK_LEFT)] ? 1.0f : 0);
+	obj->mtype.phys_info.rotthrust.x = -((pressed[maplk(SDLK_KP_2)] ? 1.0f : 0) - (pressed[maplk(SDLK_KP_8)] ? 1.0f : 0)) * full_rot;
+	obj->mtype.phys_info.rotthrust.y = ((pressed[maplk(SDLK_KP_6)] ? 1.0f : 0) - (pressed[maplk(SDLK_KP_4)] ? 1.0f : 0)) * full_rot;
+	obj->mtype.phys_info.rotthrust.z = -((pressed[maplk(SDLK_KP_9)] ? 1.0f : 0) - (pressed[maplk(SDLK_KP_7)] ? 1.0f : 0)) * full_rot;
+	obj->mtype.phys_info.rotthrust.x += -((pressed[maplk(SDLK_DOWN)] ? 1.0f : 0) - (pressed[maplk(SDLK_UP)] ? 1.0f : 0)) * full_rot;
+	obj->mtype.phys_info.rotthrust.y += (pressed[maplk(SDLK_RIGHT)] ? 1.0f : 0) - (pressed[maplk(SDLK_LEFT)] ? 1.0f : 0) * full_rot;
 	obj->mtype.phys_info.thrust = obj->orient.fvec * ((pressed[maplk(SDLK_a)] ? 1.0f : 0) - (pressed[maplk(SDLK_z)] ? 1.0f : 0)) * full_thrust;
 	obj->mtype.phys_info.thrust += obj->orient.rvec * ((pressed[maplk(SDLK_KP_3)] ? 1.0f : 0) - (pressed[maplk(SDLK_KP_1)] ? 1.0f : 0)) * full_thrust;
 	//obj->mtype.phys_info.thrust += obj->orient.uvec * ((pressed[maplk(SDLK_KP_ENTER)] ? 1.0f : 0) - (pressed[maplk(SDLK_DOWN)] ? 1.0f : 0));
