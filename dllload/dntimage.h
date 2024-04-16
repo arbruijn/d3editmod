@@ -1,6 +1,8 @@
 #ifndef _DNTIMAGE_
 #define _DNTIMAGE_
 
+#ifndef WIN32
+
 //
 // Image Formats
 //
@@ -560,6 +562,7 @@ typedef struct _IMAGE_IMPORT_DESCRIPTOR {
 
 #include <poppack.h>
 
+#endif
 
-#endif /* _NTIMAGE_ */
+#endif /* _DNTIMAGE_ */
 

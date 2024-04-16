@@ -1,3 +1,7 @@
+#ifdef WIN32
+#define _CRT_DECLARE_NONSTDC_NAMES 1
+#include <io.h>
+#endif
 #include <stdio.h>
 #include <stdint.h>
 extern "C" {
@@ -24,7 +28,7 @@ extern "C" {
 #include "msafenames.h"
 
 
-#undef WIN32
+//#undef WIN32
 #include "CFILE.H"
 #include "globals.h"
 #define INCLUDED_FROM_D3
@@ -39,6 +43,7 @@ extern "C" {
 #define fgets cfgets
 #endif
 
+#if 0
 struct {
   struct {
     unsigned segment;
@@ -49,6 +54,7 @@ struct {
   unsigned bits_32:1;
   char *file;
 } opt = { .bits_32 = 1 };
+#endif
 
 #define B86EMU
 
@@ -221,9 +227,13 @@ unsigned myWriteFile(unsigned hFile, unsigned buf, unsigned size, unsigned pret,
 	return ret >= 0;
 }
 unsigned myVirtualAlloc(unsigned lpAddress, unsigned dwSize, unsigned flAllocationType, unsigned flProtect) {
+	#ifdef WIN32
+	return (unsigned)VirtualAlloc((LPVOID)lpAddress, dwSize, flAllocationType, flProtect);
+	#else
 	if (lpAddress)
 		return flAllocationType == 0x1000 ? lpAddress : 0;
 	return (unsigned)memalign(4096, dwSize);
+	#endif
 }
 unsigned myIsBadWritePtr(unsigned a, unsigned b) { return 0; }
 unsigned myIsBadReadPtr(unsigned a, unsigned b) { return 0; }
@@ -350,13 +360,13 @@ unsigned MSafe_DoPowerup(unsigned mstruct) { printf("mpowerup\n"); msafe_DoPower
 unsigned LGoal_Value(unsigned act, unsigned type, unsigned val, unsigned goal, unsigned item) { osipf_LGoalValue(act, type, (void *)val, goal, item); return 0; }
 unsigned Matcen_Value(unsigned h,unsigned op, unsigned type, unsigned val, unsigned prod) { osipf_MatcenValue(h, op, type, (void *)val, prod); return 0; }
 unsigned Obj_SetCustomAnim(unsigned objnum,unsigned start,unsigned end,unsigned time,unsigned flags,unsigned sound,unsigned next_type) {
-	union bitfloat start_float = { .bit = start }, end_float = { .bit = end }, time_float = { .bit = time };
+	union bitfloat start_float = { start }, end_float = { end }, time_float = { time };
 	osipf_ObjectCustomAnim(objnum,start_float.f,end_float.f,time_float.f,flags,sound,next_type);
 	return 0;
 }
 void osipf_ObjKill(int handle,int killer_handle,float damage,int flags,float min_time,float max_time);
 unsigned Obj_Kill(unsigned handle,unsigned killer_handle,unsigned damage,unsigned flags,unsigned min_time,unsigned max_time) {
-	union bitfloat damagef = { .bit = damage  }, min_timef = { .bit = min_time }, max_timef = { .bit = max_time };
+	union bitfloat damagef = { damage  }, min_timef = { min_time }, max_timef = { max_time };
 	osipf_ObjKill(handle,killer_handle,damagef.f,flags,min_timef.f,max_timef.f);
 	return 0;
 }
@@ -376,88 +386,88 @@ struct {
 		unsigned (*fun8)(unsigned a, unsigned b, unsigned c, unsigned d, unsigned e, unsigned f, unsigned g, unsigned h);
 	};
 } funs[] = {
-	{"GetStdHandle", 1, .fun1 = myGetStdHandle},
-	{"WriteFile", 5, .fun5 = myWriteFile},
-	{"VirtualAlloc", 4, .fun4 = myVirtualAlloc},
-	{"IsBadWritePtr", 2, .fun2 = myIsBadWritePtr},
-	{"IsBadReadPtr", 2, .fun2 = myIsBadReadPtr},
-	{"HeapValidate", 3, .fun3 = myHeapValidate},
-	{"GetCommandLineA", 0, .fun0 = myGetCommandLineA},
-	{"GetVersion", 0, .fun0 = myGetVersion},
-	{"GetProcAddress", 2, .fun2 = myGetProcAddress},
-	{"GetModuleHandleA", 1, .fun1 = myGetModuleHandleA},
-	{"GetCurrentThreadId", 0, .fun0 = myGetCurrentThreadId},
-	{"TlsSetValue", 2, .fun2 = myTlsSetValue},
-	{"TlsAlloc", 0, .fun0 = myTlsAlloc},
-	{"TlsFree", 1, .fun1 = myTlsFree},
-	{"SetLastError", 1, .fun1 = mySetLastError},
-	{"TlsGetValue", 1, .fun1 = myTlsGetValue},
-	{"GetLastError", 0, .fun0 = myGetLastError},
-	{"DebugBreak", 0, .fun0 = myDebugBreak},
-	{"InterlockedDecrement", 1, .fun1 = myInterlockedDecrement},
-	{"OutputDebugStringA", 1, .fun1 = myOutputDebugStringA},
-	{"LoadLibraryA", 1, .fun1 = myLoadLibraryA},
-	{"InterlockedIncrement", 1, .fun1 = myInterlockedIncrement},
-	{"GetModuleFileNameA", 3, .fun3 = myGetModuleFileNameA},
-	{"ExitProcess", 1, .fun1 = myExitProcess},
-	{"TerminateProcess", 2, .fun2 = myTerminateProcess},
-	{"GetCurrentProcess", 0, .fun0 = myGetCurrentProcess},
-	{"InitializeCriticalSection", 1, .fun1 = myInitializeCriticalSection},
-	{"DeleteCriticalSection", 1, .fun1 = myDeleteCriticalSection},
-	{"EnterCriticalSection", 1, .fun1 = myEnterCriticalSection},
-	{"LeaveCriticalSection", 1, .fun1 = myLeaveCriticalSection},
-	{"RtlUnwind", 4, .fun4 = myRtlUnwind},
-	{"HeapAlloc", 3, .fun3 = myHeapAlloc},
-	{"HeapReAlloc", 4, .fun4 = myHeapReAlloc},
-	{"HeapFree", 3, .fun3 = myHeapFree},
-	{"VirtualFree", 3, .fun3 = myVirtualFree},
-	{"GetEnvironmentVariableA", 3, .fun3 = myGetEnvironmentVariableA},
-	{"GetVersionExA", 1, .fun1 = myGetVersionExA},
-	{"HeapDestroy", 1, .fun1 = myHeapDestroy},
-	{"HeapCreate", 3, .fun3 = myHeapCreate},
-	{"GetCPInfo", 2, .fun2 = myGetCPInfo},
-	{"GetACP", 0, .fun0 = myGetACP},
-	{"GetOEMCP", 0, .fun0 = myGetOEMCP},
-	{"SetHandleCount", 1, .fun1 = mySetHandleCount},
-	{"GetFileType", 1, .fun1 = myGetFileType},
-	{"GetStartupInfoA", 1, .fun1 = myGetStartupInfoA},
-	{"FreeEnvironmentStringsA", 1, .fun1 = myFreeEnvironmentStringsA},
-	{"FreeEnvironmentStringsW", 1, .fun1 = myFreeEnvironmentStringsW},
-	{"WideCharToMultiByte", 8, .fun8 = myWideCharToMultiByte},
-	{"GetEnvironmentStrings", 0, .fun0 = myGetEnvironmentStrings},
-	{"GetEnvironmentStringsW", 0, .fun0 = myGetEnvironmentStringsW},
-	{"SetFilePointer", 4, .fun4 = mySetFilePointer},
-	{"MultiByteToWideChar", 6, .fun6 = myMultiByteToWideChar},
-	{"GetStringTypeA", 5, .fun5 = myGetStringTypeA},
-	{"GetStringTypeW", 5, .fun5 = myGetStringTypeW},
-	{"LCMapStringA", 6, .fun6 = myLCMapStringA},
-	{"LCMapStringW", 6, .fun6 = myLCMapStringW},
-	{"RaiseException", 4, .fun4 = myRaiseException},
-	{"SetStdHandle", 2, .fun2 = mySetStdHandle},
-	{"FlushFileBuffers", 1, .fun1 = myFlushFileBuffers},
-	{"CloseHandle", 1, .fun1 = myCloseHandle},
-	{"mprintf", -1},
-	{"File_Open", 2 | 0x100, .fun2 = File_Open},
-	{"File_eof", 1 | 0x100, .fun1 = File_eof},
-	{"File_ReadString", 3 | 0x100, .fun3 = File_ReadString},
-	{"File_Close", 1 | 0x100, .fun1 = File_Close},
-	{"FindName", 1 | 0x100, .fun1 = FindName},
-	{"Scrpt_FindObjectName", 1 | 0x100, .fun1 = Scrpt_FindObjectName},
-	{"Scrpt_FindRoomName", 1 | 0x100, .fun1 = Scrpt_FindRoomName},
-	{"Scrpt_FindTriggerName", 1 | 0x100, .fun1 = Scrpt_FindTriggerName},
-	{"Scrpt_FindLevelGoalName", 1 | 0x100, .fun1 = Scrpt_FindLevelGoalName},
-	{"Scrpt_FindTextureName", 1 | 0x100, .fun1 = Scrpt_FindTextureName},
-	{"Scrpt_GetTriggerFace", 1 | 0x100, .fun1 = Scrpt_GetTriggerFace},
-	{"Scrpt_GetTriggerRoom", 1 | 0x100, .fun1 = Scrpt_GetTriggerRoom},
-	{"Scrpt_CreateTimer", 1 | 0x100, .fun1 = Scrpt_CreateTimer},
-	{"Cine_StartCanned", 1 | 0x100, .fun1 = Cine_StartCanned},
-	{"MSafe_CallFunction", 2 | 0x100, .fun2 = MSafe_CallFunction},
-	{"MSafe_GetValue", 2 | 0x100, .fun2 = MSafe_GetValue},
-	{"MSafe_DoPowerup", 1 | 0x100, .fun1 = MSafe_DoPowerup},
-	{"Obj_SetCustomAnim", 7 | 0x100, .fun7 = Obj_SetCustomAnim},
-	{"Obj_Kill", 6 | 0x100, .fun6 = Obj_Kill},
-	{"LGoal_Value", 5 | 0x100, .fun5 = LGoal_Value},
-	{"Matcen_Value", 5 | 0x100, .fun5 = Matcen_Value},
+	{"GetStdHandle", 1, {.fun1 = myGetStdHandle} },
+	{"WriteFile", 5, {.fun5 = myWriteFile}},
+	{"VirtualAlloc", 4, {.fun4 = myVirtualAlloc}},
+	{"IsBadWritePtr", 2, {.fun2 = myIsBadWritePtr}},
+	{"IsBadReadPtr", 2, {.fun2 = myIsBadReadPtr}},
+	{"HeapValidate", 3, {.fun3 = myHeapValidate}},
+	{"GetCommandLineA", 0, {.fun0 = myGetCommandLineA}},
+	{"GetVersion", 0, {.fun0 = myGetVersion}},
+	{"GetProcAddress", 2, {.fun2 = myGetProcAddress}},
+	{"GetModuleHandleA", 1, {.fun1 = myGetModuleHandleA}},
+	{"GetCurrentThreadId", 0, {.fun0 = myGetCurrentThreadId}},
+	{"TlsSetValue", 2, {.fun2 = myTlsSetValue}},
+	{"TlsAlloc", 0, {.fun0 = myTlsAlloc}},
+	{"TlsFree", 1, {.fun1 = myTlsFree}},
+	{"SetLastError", 1, {.fun1 = mySetLastError}},
+	{"TlsGetValue", 1, {.fun1 = myTlsGetValue}},
+	{"GetLastError", 0, {.fun0 = myGetLastError}},
+	{"DebugBreak", 0, {.fun0 = myDebugBreak}},
+	{"InterlockedDecrement", 1, {.fun1 = myInterlockedDecrement}},
+	{"OutputDebugStringA", 1, {.fun1 = myOutputDebugStringA}},
+	{"LoadLibraryA", 1, {.fun1 = myLoadLibraryA}},
+	{"InterlockedIncrement", 1, {.fun1 = myInterlockedIncrement}},
+	{"GetModuleFileNameA", 3, {.fun3 = myGetModuleFileNameA}},
+	{"ExitProcess", 1, {.fun1 = myExitProcess}},
+	{"TerminateProcess", 2, {.fun2 = myTerminateProcess}},
+	{"GetCurrentProcess", 0, {.fun0 = myGetCurrentProcess}},
+	{"InitializeCriticalSection", 1, {.fun1 = myInitializeCriticalSection}},
+	{"DeleteCriticalSection", 1, {.fun1 = myDeleteCriticalSection}},
+	{"EnterCriticalSection", 1, {.fun1 = myEnterCriticalSection}},
+	{"LeaveCriticalSection", 1, {.fun1 = myLeaveCriticalSection}},
+	{"RtlUnwind", 4, {.fun4 = myRtlUnwind}},
+	{"HeapAlloc", 3, {.fun3 = myHeapAlloc}},
+	{"HeapReAlloc", 4, {.fun4 = myHeapReAlloc}},
+	{"HeapFree", 3, {.fun3 = myHeapFree}},
+	{"VirtualFree", 3, {.fun3 = myVirtualFree}},
+	{"GetEnvironmentVariableA", 3, {.fun3 = myGetEnvironmentVariableA}},
+	{"GetVersionExA", 1, {.fun1 = myGetVersionExA}},
+	{"HeapDestroy", 1, {.fun1 = myHeapDestroy}},
+	{"HeapCreate", 3, {.fun3 = myHeapCreate}},
+	{"GetCPInfo", 2, {.fun2 = myGetCPInfo}},
+	{"GetACP", 0, {.fun0 = myGetACP}},
+	{"GetOEMCP", 0, {.fun0 = myGetOEMCP}},
+	{"SetHandleCount", 1, {.fun1 = mySetHandleCount}},
+	{"GetFileType", 1, {.fun1 = myGetFileType}},
+	{"GetStartupInfoA", 1, {.fun1 = myGetStartupInfoA}},
+	{"FreeEnvironmentStringsA", 1, {.fun1 = myFreeEnvironmentStringsA}},
+	{"FreeEnvironmentStringsW", 1, {.fun1 = myFreeEnvironmentStringsW}},
+	{"WideCharToMultiByte", 8, {.fun8 = myWideCharToMultiByte}},
+	{"GetEnvironmentStrings", 0, {.fun0 = myGetEnvironmentStrings}},
+	{"GetEnvironmentStringsW", 0, {.fun0 = myGetEnvironmentStringsW}},
+	{"SetFilePointer", 4, {.fun4 = mySetFilePointer}},
+	{"MultiByteToWideChar", 6, {.fun6 = myMultiByteToWideChar}},
+	{"GetStringTypeA", 5, {.fun5 = myGetStringTypeA}},
+	{"GetStringTypeW", 5, {.fun5 = myGetStringTypeW}},
+	{"LCMapStringA", 6, {.fun6 = myLCMapStringA}},
+	{"LCMapStringW", 6, {.fun6 = myLCMapStringW}},
+	{"RaiseException", 4, {.fun4 = myRaiseException}},
+	{"SetStdHandle", 2, {.fun2 = mySetStdHandle}},
+	{"FlushFileBuffers", 1, {.fun1 = myFlushFileBuffers}},
+	{"CloseHandle", 1, {.fun1 = myCloseHandle}},
+	{"mprintf", -1 },
+	{"File_Open", 2 | 0x100, {.fun2 = File_Open}},
+	{"File_eof", 1 | 0x100, {.fun1 = File_eof}},
+	{"File_ReadString", 3 | 0x100, {.fun3 = File_ReadString}},
+	{"File_Close", 1 | 0x100, {.fun1 = File_Close}},
+	{"FindName", 1 | 0x100, {.fun1 = FindName}},
+	{"Scrpt_FindObjectName", 1 | 0x100, {.fun1 = Scrpt_FindObjectName}},
+	{"Scrpt_FindRoomName", 1 | 0x100, {.fun1 = Scrpt_FindRoomName}},
+	{"Scrpt_FindTriggerName", 1 | 0x100, {.fun1 = Scrpt_FindTriggerName}},
+	{"Scrpt_FindLevelGoalName", 1 | 0x100, {.fun1 = Scrpt_FindLevelGoalName}},
+	{"Scrpt_FindTextureName", 1 | 0x100, {.fun1 = Scrpt_FindTextureName}},
+	{"Scrpt_GetTriggerFace", 1 | 0x100, {.fun1 = Scrpt_GetTriggerFace}},
+	{"Scrpt_GetTriggerRoom", 1 | 0x100, {.fun1 = Scrpt_GetTriggerRoom}},
+	{"Scrpt_CreateTimer", 1 | 0x100, {.fun1 = Scrpt_CreateTimer}},
+	{"Cine_StartCanned", 1 | 0x100, {.fun1 = Cine_StartCanned}},
+	{"MSafe_CallFunction", 2 | 0x100, {.fun2 = MSafe_CallFunction}},
+	{"MSafe_GetValue", 2 | 0x100, {.fun2 = MSafe_GetValue}},
+	{"MSafe_DoPowerup", 1 | 0x100, {.fun1 = MSafe_DoPowerup}},
+	{"Obj_SetCustomAnim", 7 | 0x100, {.fun7 = Obj_SetCustomAnim}},
+	{"Obj_Kill", 6 | 0x100, {.fun6 = Obj_Kill}},
+	{"LGoal_Value", 5 | 0x100, {.fun5 = LGoal_Value}},
+	{"Matcen_Value", 5 | 0x100, {.fun5 = Matcen_Value}},
 	};
 #define MAX_FUNS (sizeof(funs) / sizeof(funs[0]))
 
@@ -587,7 +597,7 @@ void *readfile(const char *filename, unsigned *psize) {
 	if ((unsigned)size > nt.OptionalHeader.SizeOfImage)
 		size = nt.OptionalHeader.SizeOfImage;
 	//if (!(ptr = memalign(0x1000, nt.OptionalHeader.SizeOfImage))) {
-	if (!(ptr = mmap((void *)0x10000000, nt.OptionalHeader.SizeOfImage, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0))) {
+	if (!(ptr = VirtualAlloc((void*)0 /*0x10000000*/, nt.OptionalHeader.SizeOfImage, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE))) {//mmap((void *)0x10000000, nt.OptionalHeader.SizeOfImage, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0))) {
 		perror("memalign");
 		return NULL;
 	}
@@ -610,11 +620,11 @@ void *mk_funcode() {
 	char *funcode = (char *)malloc(MAX_FUNS * 5);
 	for (unsigned i = 0; i < MAX_FUNS; i++) {
 		char *fun = funcode + i * 5;
-		*fun++ = 0xb0;
+		*fun++ = 0xb0; // mov ah, constant
 		*fun++ = i;
-		*fun++ = 0xcd;
+		*fun++ = 0xcd; // int 0x80
 		*fun++ = 0x80;
-		*fun++ = 0xc3;
+		*fun++ = 0xc3;  // ret
 	}
 	return funcode;
 }
@@ -815,7 +825,11 @@ void dll_free(struct dll *dll) {
 		return;
 	dllfun_call(dll->entry, 3, (unsigned)dll->mem, DLL_PROCESS_DETACH, 0);
 	//free(dll->mem);
+#ifdef WIN32
+	VirtualFree(dll->mem, 0, MEM_RELEASE);
+#else
 	munmap(dll->mem, dll->memsize);
+#endif
 	free(dll);
 }
 
