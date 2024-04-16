@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.12)
 
 project(d3)
 
+set(CMAKE_CXX_STANDARD 20)
+
 set(CMAKE_LIBRARY_PATH "/usr/lib/i386-linux-gnu" CACHE PATH "<desc>")
 find_package(SDL2 REQUIRED)
 find_package(OpenGL REQUIRED)
