@@ -1,7 +1,7 @@
 #ifndef __BOX86CONTEXT_H_
 #define __BOX86CONTEXT_H_
 #include <stdint.h>
-#include <pthread.h>
+//#include <pthread.h>
 //#include "pathcoll.h"
 #include "dictionnary.h"
 
@@ -61,7 +61,9 @@ typedef struct base_segment_s {
     uintptr_t       base;
     uint32_t        limit;
     int             present;
+    #if 0
     pthread_key_t   key;
+    #endif
 } base_segment_t;
 
 typedef struct box86context_s {
@@ -121,6 +123,7 @@ typedef struct box86context_s {
     vkprocaddess_t      vkprocaddress;
     #endif
 
+    #if 0
     pthread_mutex_t     mutex_once;
     pthread_mutex_t     mutex_once2;
     pthread_mutex_t     mutex_trace;
@@ -133,6 +136,7 @@ typedef struct box86context_s {
     pthread_mutex_t     mutex_tls;
     pthread_mutex_t     mutex_thread;
     pthread_mutex_t     mutex_bridge;
+#endif
 
     #if 1
     library_t           *libclib;       // shortcut to libc library (if loaded, so probably yes)
@@ -159,7 +163,9 @@ typedef struct box86context_s {
     int                 deferedInitCap;
     #endif
 
+    #if 0
     pthread_key_t       tlskey;     // then tls key to have actual tlsdata
+    #endif
     void*               tlsdata;    // the initial global tlsdata
     int32_t             tlssize;    // wanted size of tlsdata
     base_segment_t      segtls[3];  // only handling 0/1/2 descriptors

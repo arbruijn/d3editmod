@@ -1,5 +1,6 @@
 #ifndef __SIGNALS_H__
 #define __SIGNALS_H__
+#ifndef WIN32
 #include <signal.h>
 
 typedef void (*sighandler_t)(int);
@@ -39,4 +40,5 @@ void fini_signal_helper();
 
 void emit_signal(x86emu_t* emu, int sig, void* addr, int code);
 
+#endif
 #endif //__SIGNALS_H__

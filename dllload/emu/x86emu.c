@@ -3,10 +3,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#if 0
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <sys/time.h>
 #include <sys/mman.h>
+#endif
 
 #include "emudebug.h"
 #include "box86stack.h"

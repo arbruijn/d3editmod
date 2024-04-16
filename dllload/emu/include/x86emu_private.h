@@ -61,7 +61,7 @@ typedef struct x86emu_s {
     int         error;
     int         fork;   // quit because need to fork
     forkpty_t*  forkpty_info;
-    int         exit;
+    //int         exit;
     int         quitonlongjmp;  // quit if longjmp is called
     int         longjmp;        // if quit because of longjmp
     // parent context

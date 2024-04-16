@@ -10,8 +10,10 @@ extern "C" {
 }
 #include <string.h>
 #include <stdlib.h>
+#ifndef WIN32
 #include <unistd.h>
 #include <sys/mman.h>
+#endif
 #include <fcntl.h>
 #include <stdarg.h>
 #include <malloc.h>

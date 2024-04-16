@@ -6,7 +6,7 @@
 #include <string.h>
 #include <signal.h>
 #include <sys/types.h>
-#include <unistd.h>
+//#include <unistd.h>
 
 #include "emudebug.h"
 #include "box86stack.h"

@@ -1,5 +1,5 @@
 #define _GNU_SOURCE         /* See feature_test_macros(7) */
-#include <dlfcn.h>
+//#include <dlfcn.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>

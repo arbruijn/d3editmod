@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include <sys/mman.h>
+//#include <sys/mman.h>
 
 #include "box86stack.h"
 #include "box86context.h"
