@@ -284,6 +284,8 @@ int GetVolumeSizeOfRoom (room *rp,int *w,int *h,int *d)
 
 
 //Terrain
+#include "weather.h"
+weather Weather;
 
 // resets the weather so there is nothing happening
 void ResetWeather ()
@@ -1799,7 +1801,6 @@ object *Player_object;
 trigger Triggers[MAX_TRIGGERS];
 #endif
 texture GameTextures[MAX_TEXTURES];
-int Weather;
 bool State_limited;
 bool Debug_Init(bool, bool) { return true; }
 char Base_directory[PSPATHNAME_LEN];
