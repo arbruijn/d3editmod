@@ -1292,11 +1292,17 @@ EM_BOOL DoFrameEm(double time, void* userData) {
 
 extern "C" void initialize_gl4es();
 
+#define DIR "c:\\games\\d3"
+
 #undef main
 int main(int argc, char **argv) {
 	char hogpath[PSPATHNAME_LEN];
 	//bool hogfile_opened = false;
 	int hog_lib_id;
+
+#ifndef DIR
+#define DIR "."
+#endif
 
 	#ifdef __EMSCRIPTEN__
 	initialize_gl4es();
@@ -1305,7 +1311,7 @@ int main(int argc, char **argv) {
 	ddio_MakePath(hogpath,".","d3demo.hog",NULL);
 	is_demo = 1;
 	#else
-	ddio_MakePath(hogpath,".","d3.hog",NULL);
+	ddio_MakePath(hogpath,DIR,"d3.hog",NULL);
 	#endif
 	if((hog_lib_id = cf_OpenLibrary(hogpath))!=0)
 	{
@@ -1316,6 +1322,19 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "failed to open %s\n", hogpath);
 		exit(1);
 	}
+
+	ddio_MakePath(hogpath, DIR, "missions", "d3.mn3", NULL);
+	if ((hog_lib_id = cf_OpenLibrary(hogpath)) != 0)
+	{
+		//RegisterHogFile(hogpath,hog_lib_id);
+		mprintf((0, "Hog file %s opened\n", hogpath));
+		//hogfile_opened = true;
+	}
+	else {
+		fprintf(stderr, "failed to open %s\n", hogpath);
+		exit(1);
+	}
+
 
 	WindowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
 	Window = SDL_CreateWindow("OpenGL Test", 0, 0, WinWidth, WinHeight, WindowFlags);
