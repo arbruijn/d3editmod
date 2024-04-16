@@ -1042,6 +1042,8 @@ void setup_dll() {
 	mod_generic_call = dll_find(mod_generic, "_CallInstanceEvent@16");
 	assert(mod_generic_call);
 
+	if (!cfexist("level1.dll"))
+		return;
 	mod_level = dll_load("level1.dll");
 	assert(mod_level);
 	dllfun_call(dll_find(mod_level, "_InitializeDLL@4"), 1, (unsigned)&init);
@@ -1091,6 +1093,10 @@ void Osiris_DisableCreateEvents()
 bool Osiris_CallLevelEvent(int evt, tOSIRISEventInfo *data) {
 	bool ok;
 	int extra_evt = -1;
+
+	if (!mod_level_call)
+		return true;
+
 	if (evt == EVT_AI_NOTIFY)
 		switch (((tOSIRISEVTAINOTIFY *)data)->notify_type) {
 			case AIN_GOAL_COMPLETE:
@@ -1109,6 +1115,9 @@ bool Osiris_CallLevelEvent(int evt, tOSIRISEventInfo *data) {
 
 bool Osiris_CallTriggerEvent(int handle, int evt, tOSIRISEventInfo *data) {
 	bool ok;
+
+	if (!mod_level_call)
+		return true;
 
 	if ((Game_mode & 0x24) && (Netgame.local_role != 1))
 		return true;
@@ -1155,11 +1164,12 @@ bool Osiris_CallEvent(object *obj, int evt, tOSIRISEventInfo *data) {
 		printf("call powerup %d %x %x %x\n", pow_id, pow_inst, evt, (unsigned)data);
 		dllfun_call(mod_generic_call, 4, pow_id, pow_inst, evt, (unsigned)data);
 	}
-	for (int i = 0; i < lvl_obj_count; i++)
-		if (handle == lvl_obj_handles[i]) {
-			printf("call level object %d %x %x %x\n", lvl_obj_ids[i], lvl_obj_insts[i], evt, (unsigned)data);
-			dllfun_call(mod_level_call, 4, lvl_obj_ids[i], lvl_obj_insts[i], evt, (unsigned)data);
-		}
+	if (mod_level_call)
+		for (int i = 0; i < lvl_obj_count; i++)
+			if (handle == lvl_obj_handles[i]) {
+				printf("call level object %d %x %x %x\n", lvl_obj_ids[i], lvl_obj_insts[i], evt, (unsigned)data);
+				dllfun_call(mod_level_call, 4, lvl_obj_ids[i], lvl_obj_insts[i], evt, (unsigned)data);
+			}
 	return true;
 }
 
@@ -1226,10 +1236,15 @@ void start() {
 	//rend_DrawSimpleBitmap(bm, 0, 0);
 	#endif
 
-	int level_lib_id = !is_demo && cf_OpenLibrary("missions/d3.mn3");
-	if (!cfexist("level1.d3l"))
+	const char *mission_file = "missions/d3.mn3";
+	const char *level_file = "level1.d3l";
+	//const char *mission_file = "missions/ugh.mn3";
+	//const char *level_file = "Ugh.d3l";
+
+	int level_lib_id = !is_demo && cf_OpenLibrary(mission_file);
+	if (!cfexist(level_file))
 		fprintf(stderr, "level missing\n");
-	if (!LoadLevel("level1.d3l"))
+	if (!LoadLevel(level_file))
 		fprintf(stderr, "loadlevel failed\n");
 
 	StartLevel();
