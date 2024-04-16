@@ -123,8 +123,9 @@ typedef struct {
 	int64_t			sq;
 } fpu_ll_t;
 
+#pragma pack(push,1)
 typedef union {
-    struct __attribute__ ((__packed__)) {
+    struct /*__attribute__((__packed__))*/ {
         unsigned int _F_CF:1;
 		unsigned int _F_res1:1;
         unsigned int _F_PF:1;
@@ -149,6 +150,7 @@ typedef union {
     } f;
     uint32_t    x32;
 } x86flags_t;
+#pragma pack(pop)
 
 typedef enum {
     F_CF = 0,
@@ -176,8 +178,9 @@ typedef enum {
 } flags_names_t;
 
 
+#pragma pack(push,1)
 typedef union {
-    struct __attribute__ ((__packed__)) {
+    struct /*__attribute__((__packed__))*/ {
         unsigned int F87_IE:1;
         unsigned int F87_DE:1;
         unsigned int F87_ZE:1;
@@ -195,6 +198,7 @@ typedef union {
     } f;
     uint16_t    x16;
 } x87flags_t;
+#pragma pack(pop)
 
 typedef union {
 	uint64_t	q;
