@@ -4,7 +4,7 @@ project(d3)
 
 set(CMAKE_LIBRARY_PATH "/usr/lib/i386-linux-gnu" CACHE PATH "<desc>")
 find_package(SDL2 REQUIRED)
-#find_package(OpenGL REQUIRED)
+find_package(OpenGL REQUIRED)
 
 include_directories(${SDL2_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIRS})
 
@@ -72,5 +72,5 @@ list(APPEND SRC manage/manage.cpp)
 
 add_executable(d3 "${SRC}")
 #target_link_libraries(d3 ${SDL2_LIBRARIES} ${OPENGL_LIBRARIES})
-target_link_libraries(d3 SDL2 GL)
+target_link_libraries(d3 SDL2::SDL2 OpenGL::GL)
 
