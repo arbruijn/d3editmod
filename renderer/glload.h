@@ -186,13 +186,15 @@ EXTERN(glVertex3f_fp,dglVertex3f);
 EXTERN(glVertexPointer_fp,dglVertexPointer);
 EXTERN(glViewport_fp,dglViewport);
 #endif
-#if 0
+#ifdef WIN32
 typedef void(__stdcall *glActiveTextureARB_fp)(GLenum texture);
 typedef void(__stdcall *glClientActiveTextureARB_fp)(GLenum texture);
 typedef void(__stdcall *glMultiTextCoord4f_fp)(GLenum target, GLfloat s, GLfloat t, GLfloat r, GLfloat q);
 EXTERN(glActiveTextureARB_fp,dglActiveTextureARB);
 EXTERN(glClientActiveTextureARB_fp,dglClientActiveTextureARB);
 EXTERN(glMultiTextCoord4f_fp,dglMultiTextCoord4f);
+#define GL_TEXTURE0 0x84C0
+#define GL_TEXTURE1 0x84C1
 #endif
 
 #ifdef MAINCODE

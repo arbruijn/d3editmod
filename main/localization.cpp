@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdlib.h>
 #include "pserror.h"
 #include "CFILE.H"
 #include "stringtable.h"

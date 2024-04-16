@@ -1290,8 +1290,9 @@ EM_BOOL DoFrameEm(double time, void* userData) {
 }
 #endif
 
-
 extern "C" void initialize_gl4es();
+
+#undef main
 int main(int argc, char **argv) {
 	char hogpath[PSPATHNAME_LEN];
 	//bool hogfile_opened = false;

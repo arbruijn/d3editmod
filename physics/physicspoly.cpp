@@ -20,7 +20,7 @@
 
 
 #if defined(WIN32)
-#include "Globvars.h"		//why does this work in windows? when the .h is in 3d
+#include "../3d/Globvars.h"		//why does this work in windows? when the .h is in 3d
 #elif defined(__LINUX__)
 #include "../3d/Globvars.h"	//temp?
 #elif defined(MACINTOSH)

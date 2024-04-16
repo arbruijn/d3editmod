@@ -379,10 +379,12 @@ int hlsSystem::InitSoundLib(oeApplication *sos, char mixer_type, char quality, b
 	}
 	
 	// Create and initialize the low-level sound library
+	#if 0
 	#if defined(WIN32)
 		m_ll_sound_ptr = new win_llsSystem;
 	#elif defined(MACINTOSH)
 		m_ll_sound_ptr = new mac_llsSystem;
+	#endif
 	#endif
 	ASSERT(m_ll_sound_ptr);
 	if(m_ll_sound_ptr == NULL) return 0;

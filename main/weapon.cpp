@@ -13,7 +13,7 @@
 
 extern int Netgame_flags, Demo_flags, Game_mode;
 extern int DiffLevel_MP, ingame_difficulty;
-extern int Diff_ai_weapon_speed[5];
+extern float Diff_ai_weapon_speed[5];
 extern float Gametime;
 
 //struct hlsSystem { int x; } Sound_system;

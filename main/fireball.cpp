@@ -1,3 +1,4 @@
+#include <string.h>
 #include "fireball.h"
 #include "psrand.h"
 #include "viseffect.h"

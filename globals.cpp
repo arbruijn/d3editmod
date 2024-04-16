@@ -12,8 +12,9 @@
  */
  
 
-#ifdef NEWEDITOR
+#ifdef WIN32 //NEWEDITOR
 #include "stdafx.h"
+#include <Windows.h>
 #endif
 #include "globals.h"
 #include "pstring.h"
@@ -60,6 +61,14 @@ int Cur_object_index = 0;
 int Current_trigger=-1;
 
 bool Disable_editor_rendering = false;
+bool Debug_break;
+
+void DrawDebugInfo(object* obj) {}
+bool Mem_low_memory_mode;
+int Game_show_sphere;
+unsigned char* TextShadeTable8[256];
+unsigned long* TextShadeTabl16[256];
+int Physics_player_verbose;
 
 #ifdef NEWEDITOR
 //Placed room info
@@ -655,7 +664,7 @@ int FindTextureName(const char *name)
 		if (!GameTextures[i].used)
 			continue;
 		seen_used++;
-		if (strcasecmp(GameTextures[i].name, name) == 0)
+		if (stricmp(GameTextures[i].name, name) == 0)
 			return i;
 	}
 	return -1;
@@ -688,7 +697,7 @@ int FindObjectIDName(const char *name)
 	return ned_FindObjectID(name);
 #else
 	for (int i = 0; i < MAX_OBJECT_IDS; i++)
-		if (Object_info[i].type != OBJ_NONE && strcasecmp(Object_info[i].name, name) == 0)
+		if (Object_info[i].type != OBJ_NONE && stricmp(Object_info[i].name, name) == 0)
 			return i;
 	return -1;
 #endif
@@ -700,7 +709,7 @@ int FindDoorName(const char *name)
 	return ned_FindDoor(name);
 #else
 	for (int i = 0; i < MAX_DOORS; i++)
-		if (Doors[i].used && strcasecmp(Doors[i].name, name) == 0)
+		if (Doors[i].used && stricmp(Doors[i].name, name) == 0)
 			return i;
 	return -1;
 #endif	

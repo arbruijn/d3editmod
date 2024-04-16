@@ -16,7 +16,7 @@
 #define GLOBALS_HEADER
 
 #ifdef WIN32
-#include "stdafx.h"
+#include <windows.h>
 #endif
 #include <stdlib.h>
 

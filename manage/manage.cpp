@@ -14,8 +14,10 @@
 #include "vclip.h"
 #include "polymodel.h"
 
+#ifndef WIN32
 #define strnicmp strncasecmp
 #define stricmp strcasecmp
+#endif
 
 void mng_FreePagetypePrimitives(int pagetype, char *name, int freetype) {}
 
@@ -357,7 +359,7 @@ int TexturePageToTexture(texture_page *page, int idx, CFILE *cf) {
 	}
 	tex->bm_handle = bm;
 	if (tex->flags & TF_DESTROYABLE) {
-		if (strcasecmp(page->destroy_name, tex->name) == 0) {
+		if (stricmp(page->destroy_name, tex->name) == 0) {
 			tex->destroy_handle = -1;
 			tex->flags &= ~TF_DESTROYABLE;
 		} else {
@@ -503,7 +505,7 @@ int mng_FindReadTexturePage(char *name, texture_page *page, int pos) {
 			continue;
 		}
 		mng_ReadTexturePage(cf, page);
-		if (strcasecmp(name, page->item.name) == 0) {
+		if (stricmp(name, page->item.name) == 0) {
 			found = 1;
 			break;
 		}
@@ -742,7 +744,7 @@ int FindWeaponName(char *name) {
 	for (int i = 0; i < MAX_WEAPONS; i++) {
 		if (!Weapons[i].used)
 			continue;
-		if (strcasecmp(Weapons[i].name, name) == 0)
+		if (stricmp(Weapons[i].name, name) == 0)
 			return i;
 		if (++seen_used == Num_weapons)
 			break;
@@ -784,7 +786,7 @@ int mng_FindReadWeaponPage(char *name, weapon_page *page, int pos) {
 			continue;
 		}
 		mng_ReadWeaponPage(cf, page);
-		if (strcasecmp(name, page->item.name) == 0) {
+		if (stricmp(name, page->item.name) == 0) {
 			found = 1;
 			break;
 		}

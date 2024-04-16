@@ -39,8 +39,10 @@
 //#undef GL_POLYGON
 //#define GL_POLYGON GL_TRIANGLE_FAN
 
+#ifndef WIN32
 #define glClientActiveTextureARB glClientActiveTexture
 #define glActiveTextureARB glActiveTexture
+#endif
 
 #else
 
@@ -924,7 +926,7 @@ int rGL_Init(oeApplication *app,renderer_preferred_state *pref_state)
 // start OS-specific code
 	memset (&OpenGL_state,0,sizeof(rendering_state));
 
-	#ifdef WIN32
+	#if 0//def WIN32
 	if (app!=NULL)
 	{
 		hOpenGLWnd = (HWND)((oeWin32Application *)app)->m_hWnd;
@@ -1715,7 +1717,7 @@ void rGL_SetDefaults()
   }
 }
 
-#ifdef WIN32
+#if 0//def WIN32
 // start OS-specific code
 // Check for OpenGL support, 
 int rGL_Setup(HDC glhdc)
@@ -1812,7 +1814,7 @@ int rGL_Setup()
 
 void rGL_InitMultitexture(void)
 {
-	#ifndef STATIC_OPENGL
+	#if 1//ndef STATIC_OPENGL
 	if (!(dglActiveTextureARB = (glActiveTextureARB_fp)dwglGetProcAddress("glActiveTextureARB")) ||
 		!(dglClientActiveTextureARB = (glClientActiveTextureARB_fp)dwglGetProcAddress("glClientActiveTextureARB")) ||
 		!(dglMultiTextCoord4f = (glMultiTextCoord4f_fp)dwglGetProcAddress("glMultiTexCoord4f")))
