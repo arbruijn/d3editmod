@@ -7,7 +7,7 @@
 int HUD_font_resolution;
 bool Hud_font_template_init;
 tFontTemplate Hud_font_template;
-char *HUD_font_files[] = { "lohud.fnt", "hihud.fnt" };
+const char *HUD_font_files[] = { "lohud.fnt", "hihud.fnt" };
 int Game_fonts[MAX_GAME_FONTS];
 
 void FreeAuxFontData()
@@ -18,7 +18,7 @@ void FreeAuxFontData()
     //grfont_FreeTemplate(&Hud_font_template);
 }
 
-int LoadFont(char *fname)
+int LoadFont(const char *fname)
 {
 	int fontnum;
 	fontnum = grfont_Load(fname);

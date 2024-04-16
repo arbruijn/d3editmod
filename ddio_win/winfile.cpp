@@ -128,7 +128,7 @@ try_again:;
 }
 
 // deletes a file.  Returns 1 if successful, 0 on failure
-int ddio_DeleteFile (char *name)
+int ddio_DeleteFile (const char *name)
 {
 	return (DeleteFile (name));
 }

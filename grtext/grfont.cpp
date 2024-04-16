@@ -66,7 +66,7 @@ inline int READ_FONT_DATA(FONTFILE ffile, void *buf, int size, int nelem)
 	return i;
 }  
 
-inline FONTFILE OPEN_FONT(char *filename) {
+inline FONTFILE OPEN_FONT(const char *filename) {
 	FONTFILE fp;
 	unsigned file_id;
 
@@ -248,7 +248,7 @@ void grfont_XlateColorGrayChar(int bm_handle, int x, int y, int index, gr_font_f
 void grfont_TranslateToBitmaps(int slot);
 
 
-int grfont_Load(char *filename)
+int grfont_Load(const char *filename)
 {
 	gr_font_record *fnt;
 	gr_font_file_record *ft;

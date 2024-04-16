@@ -171,18 +171,18 @@ int GetPrevWeapon (int n);
 
 // Searches thru all weapons for a specific name, returns -1 if not found
 // or index of weapon with name
-int FindWeaponName (char *name);
+int FindWeaponName (const char *name);
 
 // Given a filename, loads either the model or vclip found in that file.  If type
 // is not NULL, sets it to 1 if file is model, otherwise sets it to zero
-int LoadWeaponHudImage (char *filename,int *type);
+int LoadWeaponHudImage (const char *filename,int *type);
 
 // Given a weapon handle, returns that weapons image for framenum
 int GetWeaponHudImage (int handle,int framenum);
 
 // Given a filename, loads either the model or vclip found in that file.  If type
 // is not NULL, sets it to 1 if file is model, otherwise sets it to zero
-int LoadWeaponFireImage (char *filename,int *type,int *anim,int pageable
+int LoadWeaponFireImage (const char *filename,int *type,int *anim,int pageable
 #ifdef __cplusplus
 =1
 #endif

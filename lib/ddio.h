@@ -168,7 +168,7 @@ bool ddio_RemoveDir(const char *path);
 
 // deletes a file.  Returns 1 if successful, 0 on failure
 //	This pathname is *RELATIVE* not fully qualified
-int ddio_DeleteFile (char *name);
+int ddio_DeleteFile (const char *name);
 
 // Save/Restore the current working directory
 void ddio_SaveWorkingDir(void);

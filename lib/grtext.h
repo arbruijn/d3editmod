@@ -66,32 +66,32 @@ void grtext_SetFontScale(float scale);
 int grtext_GetFont();
 
 // returns the height of a string in current font.
-int grtext_GetTextHeight(char *str);
+int grtext_GetTextHeight(const char *str);
 #define grtext_GetHeight(_s) grtext_GetTextHeight(_s)
 
 // returns height of text using a font template
-int grtext_GetTextHeightTemplate(tFontTemplate *ft, char *str);
+int grtext_GetTextHeightTemplate(tFontTemplate *ft, const char *str);
 #define grtext_GetHeightTemplate(_t, _s) grtext_GetTextHeightTemplate(_t,_s)
 
 //	returns width of text in current font.
-int grtext_GetTextLineWidth(char *str);
+int grtext_GetTextLineWidth(const char *str);
 #define grtext_GetLineWidth(_s) grtext_GetTextLineWidth(_s)
 
 // returns width of text using a font template
-int grtext_GetTextLineWidthTemplate(const tFontTemplate *ft, char *str);
+int grtext_GetTextLineWidthTemplate(const tFontTemplate *ft, const char *str);
 #define grtext_GetLineWidthTemplate(_t, _s) grtext_GetTextLineWidthTemplate(_t, _s)
 
 //	puts a formatted string in the text buffer
-void grtext_Printf(int x, int y, char *fmt, ...);
+void grtext_Printf(int x, int y, const char *fmt, ...);
 
 //	puts a string on the buffer
-void grtext_Puts(int x, int y, char *str);
+void grtext_Puts(int x, int y, const char *str);
 
 //	puts a character down
 void grtext_PutChar(int x, int y, int ch);
 
 //	puts a centered string in the text buffer.
-void grtext_CenteredPrintf(int xoff, int y, char *fmt, ...);
+void grtext_CenteredPrintf(int xoff, int y, const char *fmt, ...);
 
 //	renders all text in buffer and clears buffer.  USUALLY CALL THIS TO RENDER TEXT
 void grtext_Flush();
@@ -148,13 +148,13 @@ tFontTemplate;
 void grfont_Reset();
 
 //	returns a handle to a loaded font.
-int grfont_Load(char *fname);
+int grfont_Load(const char *fname);
 
 //	frees a loaded font
 void grfont_Free(int handle);
 
 // loads a font template
-bool grfont_LoadTemplate(char *fname, tFontTemplate *ft);
+bool grfont_LoadTemplate(const char *fname, tFontTemplate *ft);
 
 // frees a font template
 void grfont_FreeTemplate(tFontTemplate *ft);
@@ -185,7 +185,7 @@ ushort *grfont_GetRawCharacterData(int font, int ch, int *w, int *h, bool *mono)
 //EDITING FUNCTIONS ONLY
 
 // sets a template to a font, be careful.
-bool grfont_SetTemplate(char *pathname, const tFontTemplate *ft);
+bool grfont_SetTemplate(const char *pathname, const tFontTemplate *ft);
 
 // sets a font's template without saving...
 bool grfont_SetKerning(int font, ubyte *kern_data);

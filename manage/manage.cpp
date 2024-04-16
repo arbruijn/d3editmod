@@ -739,7 +739,7 @@ int mng_ReadWeaponPage(CFILE *cf, weapon_page *page) {
 	return 1;
 }
 
-int FindWeaponName(char *name) {
+int FindWeaponName(const char *name) {
 	int seen_used = 0;
 	for (int i = 0; i < MAX_WEAPONS; i++) {
 		if (!Weapons[i].used)

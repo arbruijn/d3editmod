@@ -5,7 +5,7 @@
 #include "stringtable.h"
 
 struct {
-	char *tag;
+	const char *tag;
 	int len;
 } Language_tags[] { { "!=!", -1 }, { "!G!", -1 }, { "!S!", -1 }, { "!I!", -1 }, { "!F!", -1 }};
 int Num_languages = sizeof(Language_tags) / sizeof(Language_tags[0]);

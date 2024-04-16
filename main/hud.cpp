@@ -19,7 +19,7 @@ int Score_added;
 bool Small_hud_flag;
 ushort Hud_stat_mask;
 
-bool AddHUDMessage(char *msg, ...) {
+bool AddHUDMessage(const char *msg, ...) {
 	va_list vp;
 	va_start(vp, msg);
 	vprintf(msg, vp);
@@ -27,7 +27,7 @@ bool AddHUDMessage(char *msg, ...) {
 	return false;
 }
 
-bool AddFilteredHUDMessage(char *msg, ...) {
+bool AddFilteredHUDMessage(const char *msg, ...) {
 	va_list vp;
 	va_start(vp, msg);
 	vprintf(msg, vp);
@@ -35,11 +35,11 @@ bool AddFilteredHUDMessage(char *msg, ...) {
 	return false;
 }
 
-void AddGameMessage(char *msg) {
+void AddGameMessage(const char *msg) {
 	printf("game message: %s\n", msg);
 }
 
-void RenderHUDTextFlagsNoFormat(int flags,ddgr_color color,ubyte alpha,int sat_count,int x,int y,char *text)
+void RenderHUDTextFlagsNoFormat(int flags,ddgr_color color,ubyte alpha,int sat_count,int x,int y,const char *text)
 {
 	int sx, sy;
 
@@ -55,7 +55,7 @@ void RenderHUDTextFlagsNoFormat(int flags,ddgr_color color,ubyte alpha,int sat_c
 			grtext_Puts(sx,sy,text);
 }
 
-void RenderHUDText(ddgr_color col,ubyte alpha,int sat_count,int x,int y,char *fmt,...)
+void RenderHUDText(ddgr_color col,ubyte alpha,int sat_count,int x,int y,const char *fmt,...)
 {
 	char text [128];
 	va_list vp;
@@ -66,7 +66,7 @@ void RenderHUDText(ddgr_color col,ubyte alpha,int sat_count,int x,int y,char *fm
 	RenderHUDTextFlagsNoFormat(0,col,alpha,sat_count,x,y,text);
 }
 
-void RenderHUDTextFlags(int flags,ddgr_color col,ubyte alpha,int sat_count,int x,int y,char *fmt,...)
+void RenderHUDTextFlags(int flags,ddgr_color col,ubyte alpha,int sat_count,int x,int y,const char *fmt,...)
 {
 	char text [128];
 	va_list vp;
@@ -109,7 +109,7 @@ int Hud_persistent_msg_current_len;
 float Hud_persistent_msg_char_timer;
 float Hud_persistent_msg_timer;
 
-void StartPersistentHUDMessage(ddgr_color color,int x,int y,float time,uint flags,int sound_index,char *msg)
+void StartPersistentHUDMessage(ddgr_color color,int x,int y,float time,uint flags,int sound_index,const char *msg)
 {
 	snprintf(pmsg_text,sizeof(pmsg_text),"%s",msg);
 
@@ -136,7 +136,7 @@ void StartPersistentHUDMessage(ddgr_color color,int x,int y,float time,uint flag
     Hud_persistent_msg_char_timer = 0.03;
 }
 
-void AddPersistentHUDMessage(ddgr_color color,int x, int y, float time, int flags, int sound_index, char *fmt, ...) {
+void AddPersistentHUDMessage(ddgr_color color,int x, int y, float time, int flags, int sound_index, const char *fmt, ...) {
 	char msg[400];
 	va_list vp;
 	va_start(vp, fmt);
@@ -168,7 +168,7 @@ void RenderPersistentHUDMessage() {
 }
 int Ret_prim_mask, Ret_sec_mask;
 
-char *Reticle_image_names[][3] = {
+const char *Reticle_image_names[][3] = {
 	{ "_pr0a.ogf", "_pr0b.ogf", "c" },
 	{ "_pr13a.ogf", "_pr1b.ogf", "l" },
 	{ "_pr24a.ogf", "_pr2b.ogf", "r" },
@@ -212,7 +212,7 @@ void RenderHUDQuad(int x,int y,int w,int h,float u0,float v0,float u1,float v1,i
 
 void InitReticle(int primary_slots, int secondary_slots)
 {
-	char *img;
+	const char *img;
 	char filename[PAGENAME_LEN + 1];
 
 	for (int i = 0; i < ELMS(Reticle_image_names); i++) {

@@ -108,7 +108,7 @@ void grtext_Reset()
 	grtext_SetColor(0);
 }
 
-void grtext_Puts(int x, int y, char *text)
+void grtext_Puts(int x, int y, const char *text)
 {
 	grtext_AddShort(OP_PUTS);
 	grtext_AddShort(x);
@@ -117,7 +117,7 @@ void grtext_Puts(int x, int y, char *text)
 	Grtext_ptr += strlen(text) + 1;
 }
 
-void grtext_Printf(int x,int y,char *fmt,...)
+void grtext_Printf(int x,int y,const char *fmt,...)
 {
 	char text[512];
 	va_list vp;
@@ -142,7 +142,7 @@ void grtext_Flush(void)
 	grtext_Reset();
 }
 
-inline int grtext_CountLines(char *str) {
+inline int grtext_CountLines(const char *str) {
 	int lines = 1;
 	while ((str = strchr(str, '\n'))) {
 		str++;
@@ -151,17 +151,17 @@ inline int grtext_CountLines(char *str) {
 	return lines;
 }
 
-int grtext_GetTextHeightTemplate(tFontTemplate *ft,char *str)
+int grtext_GetTextHeightTemplate(tFontTemplate *ft,const char *str)
 {
 	return grtext_CountLines(str) * (ft->ch_height + grtext_LineSpacing);
 }
 
-int grtext_GetTextHeight(char *str)
+int grtext_GetTextHeight(const char *str)
 {
 	return grtext_CountLines(str) * (grfont_GetHeight(Grtext_font) + grtext_LineSpacing);
 }
 
-int grtext_GetTextLineWidth(char *str)
+int grtext_GetTextLineWidth(const char *str)
 {
 	int len = strlen(str);
 	int width = 0, max_width = 0;
@@ -191,7 +191,7 @@ int grtext_GetTextLineWidth(char *str)
 	return max_width ? max_width - Grtext_spacing : 0;
 }
 
-void grtext_CenteredPrintf(int x, int y, char *fmt, ...)
+void grtext_CenteredPrintf(int x, int y, const char *fmt, ...)
 {
 	char text[512];
 	va_list vp;

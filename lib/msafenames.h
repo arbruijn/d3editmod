@@ -1,4 +1,4 @@
-char *msafe_names[252];
+const char *msafe_names[252];
 void msafenames_init() {
 	msafe_names[0]="room face texture";
 	msafe_names[1]="room wind";
