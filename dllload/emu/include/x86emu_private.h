@@ -1,6 +1,10 @@
 #ifndef __X86EMU_PRIVATE_H_
 #define __X86EMU_PRIVATE_H_
 
+#ifdef WIN32
+#include <windows.h>
+#endif
+
 #include "regs.h"
 
 typedef struct box86context_s box86context_t;

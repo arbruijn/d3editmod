@@ -168,6 +168,11 @@ void Run67(x86emu_t *emu)
     R_EIP = ip;
 }
 
+#ifdef WIN32
+#define pthread_mutex_lock(x)
+#define pthread_mutex_unlock(x)
+#endif
+
 void RunLock(x86emu_t *emu)
 {
     uintptr_t ip = R_EIP+1;

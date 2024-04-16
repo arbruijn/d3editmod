@@ -9,6 +9,9 @@
 #include <sys/time.h>
 #include <sys/mman.h>
 #endif
+#ifdef WIN32
+#include <windows.h>
+#endif
 
 #include "emudebug.h"
 #include "box86stack.h"
@@ -182,8 +185,10 @@ void CallAllCleanup(x86emu_t *emu)
 
 static void internalFreeX86(x86emu_t* emu)
 {
-    if(emu->stack2free)
+#ifndef WIN32
+	if(emu->stack2free)
         munmap(emu->stack2free, emu->size_stack);
+#endif
 }
 
 EXPORTDYN
@@ -486,7 +491,11 @@ uint64_t ReadTSC(x86emu_t* emu)
 #endif
 #endif
     // fall back to gettime...
-#ifndef NOGETCLOCK
+#ifdef WIN32
+	LARGE_INTEGER t;
+	QueryPerformanceCounter(&t);
+	return (uint64_t)t.QuadPart;
+#elif !defined(NOGETCLOCK)
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC_COARSE, &ts);
     return (uint64_t)(ts.tv_sec) * 1000000000LL + ts.tv_nsec;

@@ -1452,7 +1452,10 @@ void Run660F(x86emu_t *emu)
     case 0xCE:
     case 0xCF:                  /* BSWAP reg16 */
         tmp8s = opcode&7;
-        emu->regs[tmp8s].word[0] = __builtin_bswap16(emu->regs[tmp8s].word[0]);
+#ifdef WIN32
+#define __builtin_bswap16(x) _byteswap_ushort(x)
+#endif
+		emu->regs[tmp8s].word[0] = __builtin_bswap16(emu->regs[tmp8s].word[0]);
         break;
     case 0xD0:  /* ADDSUBPD Gx, Ex */
         nextop = F8;

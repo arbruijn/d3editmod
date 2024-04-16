@@ -8,6 +8,9 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 #endif
+#ifdef WIN32
+#include <windows.h>
+#endif
 
 #include "emudebug.h"
 #include "box86stack.h"
