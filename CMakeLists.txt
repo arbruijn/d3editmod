@@ -36,10 +36,14 @@ set(SRC main/d3.cpp main/ambient.cpp main/bnode.cpp main/boa.cpp main/gamepath.c
 	grtext/grfont.cpp grtext/grtext.cpp main/inventory.cpp main/osiris_timer.cpp main/guidebot.cpp main/damage.cpp
 	main/gamedll.cpp main/draw.cpp main/attach.cpp main/spew.cpp main/gameevent.cpp main/cockpit.cpp)
 
+if(LINUX)
 list(APPEND SRC
 	dllload/emu/x86emu.c dllload/emu/x86run.c dllload/emu/x86run66.c dllload/emu/x86run660f.c
 	dllload/emu/x86run_private.c dllload/emu/x86primop.c dllload/emu/x87emu_private.c
 	dllload/emu/x87run.c dllload/emu/tools/box86stack.c dllload/dll.cpp)
+else()
+list(APPEND SRC dllload/nodll.cpp)
+endif()
 
 list(APPEND SRC ui/uidraw.cpp)
 

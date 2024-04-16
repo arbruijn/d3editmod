@@ -15,9 +15,9 @@ extern "C" {
 #include <fcntl.h>
 #include <stdarg.h>
 #include <malloc.h>
-#include "minwindef.h"
-#include "ntimage.h"
-#include "winnt.h"
+#include "dminwindef.h"
+#include "dntimage.h"
+#include "dwinnt.h"
 #include "dll.h"
 #include "msafenames.h"
 

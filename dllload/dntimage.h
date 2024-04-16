@@ -1,5 +1,5 @@
-#ifndef _NTIMAGE_
-#define _NTIMAGE_
+#ifndef _DNTIMAGE_
+#define _DNTIMAGE_
 
 //
 // Image Formats

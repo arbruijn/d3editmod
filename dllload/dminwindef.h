@@ -1,5 +1,5 @@
-#ifndef _MINWINDEF_
-#define _MINWINDEF_
+#ifndef _DMINWINDEF_
+#define _DMINWINDEF_
 
 #include <stdint.h>
 #define __LONG32 int
