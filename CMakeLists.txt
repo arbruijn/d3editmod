@@ -12,9 +12,12 @@ include_directories(${SDL2_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIRS})
 #set(CMAKE_C_FLAGS "$(OPTS)")
 #set(CMAKE_CXX_FLAGS "$(OPTS)")
 #set(CMAKE_EXE_LINKER_FLAGS "$(OPTS)")
+if(NOT WIN32)
 add_compile_options("-m32 -g")
 add_link_options("-m32")
-add_compile_definitions(LINUX __LINUX__ MEM_USE_RTL STATIC_OPENGL NEWEDITORSRC MONO)
+add_compile_definitions(LINUX __LINUX__)
+endif()
+add_compile_definitions(MEM_USE_RTL STATIC_OPENGL NEWEDITORSRC MONO)
 
 include_directories("${PROJECT_SOURCE_DIR}/lib")
 include_directories("${PROJECT_SOURCE_DIR}")
@@ -60,11 +63,14 @@ list(APPEND SRC physics/FindIntersection.cpp physics/physics_common.cpp physics/
 
 list(APPEND SRC misc/endian.cpp misc/error.cpp misc/psglob.cpp misc/psrand.cpp misc/pstring.cpp)
 
-list(APPEND SRC mem/Mem.cpp)
-
 list(APPEND SRC cfile/CFILE.cpp cfile/hog.cpp)
 
+if(LINUX)
+list(APPEND SRC mem/Mem.cpp)
 list(APPEND SRC linux/lnxdebug.cpp linux/lnxlib.cpp)
+else()
+list(APPEND SRC ddio_win/winfile.cpp)
+endif()
 
 list(APPEND SRC globals.cpp util.cpp)
 
