@@ -3173,7 +3173,7 @@ int LoadLevel(const char *filename, void (*cb_fn)(const char *,int, int))
 	CreateRoomObjects();
 
 #ifndef NEWEDITOR /* we call MakeBoa AFTER textures are marked in use */
-	MakeBOA();
+	//MakeBOA();
 #endif
 
 	// Decrement lightmap counters - this must be done because multiple faces can 
