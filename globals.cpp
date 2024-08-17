@@ -1353,7 +1353,7 @@ void CGenericOLETarget::DrawText(int x,int y,CWnd *pWnd,char *text)
 //Return types are the same the Windows return values
 int Debug_MessageBox(int type, const char *title, const char *str)
 {
-#ifdef WIN32
+#if 0 //def WIN32
 	DWORD flags;
 	int answer;
 	HWND wnd = GetActiveWindow();
