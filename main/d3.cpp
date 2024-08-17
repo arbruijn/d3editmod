@@ -71,6 +71,8 @@ int WinHeight = 480;
 #include "fireball.h"
 #include "cockpit.h"
 
+#include "pstring.h"
+
 #include "dll.h"
 #define INCLUDED_FROM_D3
 #include "osiris_common.h"
@@ -1016,7 +1018,8 @@ void GameFrame() {
 unsigned door_id, door_inst, mod_generic_call;
 unsigned pow_id, pow_inst;
 
-struct dll *mod_level;
+struct dll_t *mod_level;
+struct dll_t *mod_generic;
 unsigned level_id, level_inst, mod_level_call;
 int *lvl_obj_handles, *lvl_obj_ids, lvl_obj_count;
 unsigned lvl_obj_insts[500];
@@ -1026,18 +1029,22 @@ int is_demo;
 
 void setup_dll() {
 	dll_init();
-	struct dll *mod_generic = dll_load("generic.dll");
+	mod_generic = dll_load("generic.dll");
 	assert(mod_generic);
 	tOSIRISModuleInit init;
-	extern void osiris_setup(tOSIRISModuleInit *init);
-	osiris_setup(&init);
+	extern void osiris_setup(dll_t *dll, tOSIRISModuleInit *init);
+	osiris_setup(mod_generic, &init);
 	if (is_demo)
 		init.game_checksum = 0x87888c3b;
-	dllfun_call(dll_find(mod_generic, "_InitializeDLL@4"), 1, (unsigned)&init);
-	door_id = dllfun_call(dll_find(mod_generic, "_GetGOScriptID@8"), 2, (unsigned)"", (unsigned)1);
-	door_inst = dllfun_call(dll_find(mod_generic, "_CreateInstance@4"), 1, (unsigned)door_id);
-	pow_id = dllfun_call(dll_find(mod_generic, "_GetGOScriptID@8"), 2, (unsigned)"", (unsigned)0);
-	pow_inst = dllfun_call(dll_find(mod_generic, "_CreateInstance@4"), 1, (unsigned)pow_id);
+	unsigned init_vmp = dll_push(mod_generic, &init, sizeof(init));
+	dllfun_call(mod_generic, dll_find(mod_generic, "_InitializeDLL@4"), 1, init_vmp);
+	dll_pop(mod_generic, sizeof(init));
+	unsigned empty_str_vmp = dll_push(mod_generic, "", sizeof(""));
+	door_id = dllfun_call(mod_generic, dll_find(mod_generic, "_GetGOScriptID@8"), 2, empty_str_vmp, (unsigned)1);
+	door_inst = dllfun_call(mod_generic, dll_find(mod_generic, "_CreateInstance@4"), 1, (unsigned)door_id);
+	pow_id = dllfun_call(mod_generic, dll_find(mod_generic, "_GetGOScriptID@8"), 2, empty_str_vmp, (unsigned)0);
+	pow_inst = dllfun_call(mod_generic, dll_find(mod_generic, "_CreateInstance@4"), 1, (unsigned)pow_id);
+	dll_pop(mod_generic, sizeof(""));
 	assert(door_inst);
 	mod_generic_call = dll_find(mod_generic, "_CallInstanceEvent@16");
 	assert(mod_generic_call);
@@ -1046,15 +1053,32 @@ void setup_dll() {
 		return;
 	mod_level = dll_load("level1.dll");
 	assert(mod_level);
-	dllfun_call(dll_find(mod_level, "_InitializeDLL@4"), 1, (unsigned)&init);
+	osiris_setup(mod_level, &init);
+	init_vmp = dll_push(mod_level, &init, sizeof(init));
+	dllfun_call(mod_level, dll_find(mod_level, "_InitializeDLL@4"), 1, init_vmp);
+	dll_pop(mod_level, sizeof(init));
 	level_id = 0;
-	level_inst = dllfun_call(dll_find(mod_level, "_CreateInstance@4"), 1, (unsigned)level_id);
+	level_inst = dllfun_call(mod_level, dll_find(mod_level, "_CreateInstance@4"), 1, (unsigned)level_id);
 	assert(level_inst);
-	lvl_obj_count = dllfun_call(dll_find(mod_level, "_GetCOScriptList@8"), 2, (unsigned)&lvl_obj_handles, (unsigned)&lvl_obj_ids);
-	//switch_id = dllfun_call(dll_find(mod_generic, "_GetGOScriptID@8"), 2, (unsigned)"FirstForcefieldSwi", (unsigned)0);;
+	unsigned lvl_obj_handles_vmp_vmp = dll_push(mod_level, NULL, sizeof(unsigned));
+	unsigned lvl_obj_ids_vmp_vmp = dll_push(mod_level, NULL, sizeof(unsigned));
+	lvl_obj_count = dllfun_call(mod_level, dll_find(mod_level, "_GetCOScriptList@8"), 2, lvl_obj_handles_vmp_vmp, lvl_obj_ids_vmp_vmp);
+	unsigned lvl_obj_handles_vmp = dll_get32(mod_level, lvl_obj_handles_vmp_vmp);
+	unsigned lvl_obj_ids_vmp = dll_get32(mod_level, lvl_obj_ids_vmp_vmp);
+	if (lvl_obj_handles)
+		free(lvl_obj_handles);
+	if (lvl_obj_ids)
+		free(lvl_obj_ids);
+	lvl_obj_handles = (int*)malloc(lvl_obj_count * sizeof(lvl_obj_handles[0]));
+	lvl_obj_ids = (int*)malloc(lvl_obj_count * sizeof(lvl_obj_ids[0]));
+	dll_pop(mod_level, sizeof(unsigned));
+	dll_pop(mod_level, sizeof(unsigned));
+	dll_get(mod_level, lvl_obj_handles_vmp, lvl_obj_handles, lvl_obj_count * sizeof(lvl_obj_handles[0]));
+	dll_get(mod_level, lvl_obj_ids_vmp, lvl_obj_ids, lvl_obj_count * sizeof(lvl_obj_ids[0]));
+	//switch_id = dllfun_call(mod_generic, dll_find(mod_generic, "_GetGOScriptID@8"), 2, (unsigned)"FirstForcefieldSwi", (unsigned)0);;
 	assert(lvl_obj_count < (int)(sizeof(lvl_obj_insts) / sizeof(lvl_obj_insts[0])));
 	for (int i = 0; i < lvl_obj_count; i++)
-		lvl_obj_insts[i] = dllfun_call(dll_find(mod_level, "_CreateInstance@4"), 1, (unsigned)lvl_obj_ids[i]);
+		lvl_obj_insts[i] = dllfun_call(mod_level, dll_find(mod_level, "_CreateInstance@4"), 1, (unsigned)lvl_obj_ids[i]);
 	mod_level_call = dll_find(mod_level, "_CallInstanceEvent@16");
 	assert(mod_level_call);
 
@@ -1062,9 +1086,9 @@ void setup_dll() {
 	assert(mod_level_get_trigger);
 	for (int i = 0; i < Num_triggers; i++) {
 		trigger *tp = Triggers + i;
-		tp->osiris_script.script_id = dllfun_call(mod_level_get_trigger, 2, tp->roomnum, tp->facenum);
+		tp->osiris_script.script_id = dllfun_call(mod_level, mod_level_get_trigger, 2, tp->roomnum, tp->facenum);
 		if (tp->osiris_script.script_id >= 0)
-			Triggers[i].osiris_script.script_instance = (void *)dllfun_call(dll_find(mod_level, "_CreateInstance@4"), 1, tp->osiris_script.script_id);
+			Triggers[i].osiris_script.script_instance = dllfun_call(mod_level, dll_find(mod_level, "_CreateInstance@4"), 1, tp->osiris_script.script_id);
 	}
 
 	tOSIRISEventInfo info;
@@ -1107,9 +1131,11 @@ bool Osiris_CallLevelEvent(int evt, tOSIRISEventInfo *data) {
 			case AIN_GOAL_INVALID:
 				extra_evt = EVT_AIN_GOALFAIL;
 		}
-	ok  = dllfun_call(mod_level_call, 4, level_id, level_inst, evt, (unsigned)data) & 1;
+	unsigned data_vmp = dll_push(mod_level, data, sizeof(*data));
+	ok  = dllfun_call(mod_level, mod_level_call, 4, level_id, level_inst, evt, data_vmp) & 1;
 	if (extra_evt != -1)
-		ok  = dllfun_call(mod_level_call, 4, level_id, level_inst, extra_evt, (unsigned)data) & 1;
+		ok  = dllfun_call(mod_level, mod_level_call, 4, level_id, level_inst, extra_evt, data_vmp) & 1;
+	dll_pop(mod_level, sizeof(*data));
 	return ok;
 }
 
@@ -1142,12 +1168,14 @@ bool Osiris_CallTriggerEvent(int handle, int evt, tOSIRISEventInfo *data) {
 				extra_evt = EVT_AIN_GOALFAIL;
 		}
 	int id = Triggers[handle].osiris_script.script_id;
-	void *instance = Triggers[handle].osiris_script.script_instance;
+	unsigned instance = Triggers[handle].osiris_script.script_instance;
 	if (!instance)
 		return true;
-	ok  = dllfun_call(mod_level_call, 4, id, (unsigned)instance, evt, (unsigned)data) & 1;
+	unsigned data_vmp = dll_push(mod_level, data, sizeof(*data));
+	ok  = dllfun_call(mod_level, mod_level_call, 4, id, (unsigned)instance, evt, data_vmp) & 1;
 	if (extra_evt != -1)
-		ok  = dllfun_call(mod_level_call, 4, id, (unsigned)instance, extra_evt, (unsigned)data) & 1;
+		ok  = dllfun_call(mod_level, mod_level_call, 4, id, (unsigned)instance, extra_evt, data_vmp) & 1;
+	dll_pop(mod_level, sizeof(*data));
 	return ok;
 }
 
@@ -1156,20 +1184,22 @@ bool Osiris_CallEvent(object *obj, int evt, tOSIRISEventInfo *data) {
 	if (!handle)
 		return false;
 	data->me_handle = obj->handle;
+	unsigned data_vmp = dll_push(mod_generic, data, sizeof(*data));
 	if (obj->type == OBJ_DOOR) {
-		printf("call door %d %x %x %x\n", door_id, door_inst, evt, (unsigned)data);
-		dllfun_call(mod_generic_call, 4, door_id, door_inst, evt, (unsigned)data);
+		printf("call door %d %x %x %x\n", door_id, door_inst, evt, data_vmp);
+		dllfun_call(mod_generic, mod_generic_call, 4, door_id, door_inst, evt, data_vmp);
 	}
 	if (obj->type == OBJ_POWERUP) {
-		printf("call powerup %d %x %x %x\n", pow_id, pow_inst, evt, (unsigned)data);
-		dllfun_call(mod_generic_call, 4, pow_id, pow_inst, evt, (unsigned)data);
+		printf("call powerup %d %x %x %x\n", pow_id, pow_inst, evt, data_vmp);
+		dllfun_call(mod_generic, mod_generic_call, 4, pow_id, pow_inst, evt, data_vmp);
 	}
 	if (mod_level_call)
 		for (int i = 0; i < lvl_obj_count; i++)
 			if (handle == lvl_obj_handles[i]) {
-				printf("call level object %d %x %x %x\n", lvl_obj_ids[i], lvl_obj_insts[i], evt, (unsigned)data);
-				dllfun_call(mod_level_call, 4, lvl_obj_ids[i], lvl_obj_insts[i], evt, (unsigned)data);
+				printf("call level object %d %x %x %x\n", lvl_obj_ids[i], lvl_obj_insts[i], evt, data_vmp);
+				dllfun_call(mod_level, mod_level_call, 4, lvl_obj_ids[i], lvl_obj_insts[i], evt, data_vmp);
 			}
+	dll_pop(mod_generic, sizeof(*data));
 	return true;
 }
 
@@ -1292,7 +1322,79 @@ EM_BOOL DoFrameEm(double time, void* userData) {
 
 extern "C" void initialize_gl4es();
 
-#define DIR "c:\\games\\d3"
+#ifdef WIN32
+#define DIR "." // "c:\\games\\d3"
+#else
+#define DIR "../../pkg/descent3"
+#endif
+
+void testmis(int argc, char **argv) {
+		InitD3Systems1();
+		InitD3Systems2();
+	load_game_data(false);
+
+	for (int i = 1; i < argc; i++) {
+
+		const char *libname = argv[i];
+
+		//printf("checking %s\n", libname);
+
+		int lib = cf_OpenLibrary(libname);
+		int lib2 = 0;
+		if (lib == 0) {
+			fprintf(stderr, "%s: failed to open\n", libname);
+			continue;
+		}
+		char fname[256 + 5], pname[256], ext[256];
+		ddio_SplitPath(argv[i],pname,fname,ext);
+		if (strlen(pname) &&
+			(pname[strlen(pname) - 1] == '/' || pname[strlen(pname) - 1] == '\\'))
+			pname[strlen(pname) - 1] = 0;
+		if (stricmp(fname, "merc") == 0) {
+			char *p = strrchr(pname, '/');
+			if (!p)
+				p = strrchr(pname, '\\');
+			if (p)
+				*p = 0;
+			strcat(pname, "/extra.hog");
+			lib2 = cf_OpenLibrary(pname);
+		} else if (stricmp(fname, "d3") == 0) {
+			strcat(pname, "/d3_2.mn3");
+			lib2 = cf_OpenLibrary(pname);
+		}
+		strcat(fname, ".msn");
+		CFILE *fp = cfopen(fname, "rt");
+		if (!fp) {
+			fprintf(stderr, "%s: failed to open %s\n", libname, fname);
+			continue;
+		}
+		while (!cfeof(fp)) {
+			char line[256], command[256], operand[256];
+			cf_ReadString(line, sizeof(line) - 1, fp);
+			line[strlen(line) + 1] = 0;
+			char *keyword = strtok(line, " \t");
+			CleanupStr(command, line, sizeof(command));
+			CleanupStr(operand, line + strlen(line) + 1, sizeof(operand));
+			if (stricmp(command, "MINE") == 0) {
+				const char *level = operand;
+				//printf("checking %s\n", operand);
+				if (!LoadLevel(level)) {
+					fprintf(stderr, "%s: failed to open %s\n", libname, level);
+				}
+				int calc = BOAGetMineChecksum();
+				//printf("checksum calc %x file %x\n", BOAGetMineChecksum(), BOA_vis_checksum);
+				if (calc == BOA_vis_checksum)
+					printf("%s ok\n", level);
+				else
+					printf("%s: checksum calc %x file %x\n", level, BOAGetMineChecksum(), BOA_vis_checksum);
+			}
+		}
+		cfclose(fp);
+		if (lib2)
+			cf_CloseLibrary(lib2);
+		cf_CloseLibrary(lib);
+	}
+}
 
 #undef main
 int main(int argc, char **argv) {
@@ -1303,6 +1405,8 @@ int main(int argc, char **argv) {
 #ifndef DIR
 #define DIR "."
 #endif
+
+
 
 	#ifdef __EMSCRIPTEN__
 	initialize_gl4es();
@@ -1323,6 +1427,11 @@ int main(int argc, char **argv) {
 		exit(1);
 	}
 
+	if (argc > 1) {
+		testmis(argc, argv);
+		return EXIT_SUCCESS;
+	}
+
 	ddio_MakePath(hogpath, DIR, "missions", "d3.mn3", NULL);
 	if ((hog_lib_id = cf_OpenLibrary(hogpath)) != 0)
 	{
@@ -1334,7 +1443,6 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "failed to open %s\n", hogpath);
 		exit(1);
 	}
-
 
 	WindowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
 	Window = SDL_CreateWindow("OpenGL Test", 0, 0, WinWidth, WinHeight, WindowFlags);
@@ -1370,13 +1478,13 @@ int main(int argc, char **argv) {
 void Debug_ConsolePrintf( int n, const char * format, ... ) {
 	va_list vp;
 	va_start(vp, format);
-	vprintf(format, vp);
+	//vprintf(format, vp);
 	va_end(vp);
 }
 void Debug_ConsolePrintf( int n, int, int, const char * format, ... ) {
 	va_list vp;
 	va_start(vp, format);
-	vprintf(format, vp);
+	//vprintf(format, vp);
 	va_end(vp);
 }
 

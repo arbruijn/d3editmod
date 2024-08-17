@@ -56,7 +56,7 @@
         CASE _0f_0x0B:                      /* UD2 */
             emu->old_ip = R_EIP;
             R_EIP = ip-2;
-            emit_signal(emu, SIGILL, (void*)R_EIP, 0);
+            emit_signal(emu, SIGILL, (void*)(BASE+R_EIP), 0);
             ip = R_EIP;
             if(emu->quit) goto fini;
             STEP;
@@ -132,7 +132,7 @@
                 case 1: //PREFETCH1
                 case 2: //PREFETCH2
                 case 3: //PREFETCH3
-                    CASE __builtin_prefetch((void*)ED, 0, 0); // ignoring wich level of cache
+                    __builtin_prefetch((void*)ED, 0, 0); // ignoring wich level of cache
                     break;
                 default:    //NOP
                     break;
@@ -330,7 +330,7 @@
         CASE _0f_0x3F:
             emu->old_ip = R_EIP;
             R_EIP = ip-2;
-            emit_signal(emu, SIGILL, (void*)R_EIP, 0);
+            emit_signal(emu, SIGILL, (void*)(BASE+R_EIP), 0);
             ip = R_EIP;
             if(emu->quit) goto fini;
             STEP;
@@ -1431,7 +1431,7 @@
             if((nextop&0xC0)==0xC0) {
                 GET_EM;
                 for (int i=0; i<8; ++i)
-                    if(EM->ub[i]&0x80) ((uint8_t*)(R_EDI))[i] = GM.ub[i];
+                    if(EM->ub[i]&0x80) (BASE+R_EDI)[i] = GM.ub[i];
             } else
                 goto _default;
             NEXT;

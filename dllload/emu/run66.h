@@ -290,22 +290,22 @@ switch_opcodes66:
 		NEXT;
 
 		CASE _66_0xA1 :                              /* MOV AX,Ow */
-		R_AX = *(uint16_t*)F32;
+		R_AX = *(uint16_t*)(BASE+F32);
 		NEXT;
 		CASE _66_0xA3 :                              /* MOV Ow,AX */
-		*(uint16_t*)F32 = R_AX;
+		*(uint16_t*)(BASE+F32) = R_AX;
 		NEXT;
 		CASE _66_0xA5 :                              /* MOVSW */
 		tmp8s = ACCESS_FLAG(F_DF) ? -2 : +2;
-		*(uint16_t*)R_EDI = *(uint16_t*)R_ESI;
+		*(uint16_t*)(BASE+R_EDI) = *(uint16_t*)(BASE+R_ESI);
 		R_EDI += tmp8s;
 		R_ESI += tmp8s;
 		NEXT;
 
 		CASE _66_0xA7 :                              /* CMPSW */
 		tmp8s = ACCESS_FLAG(F_DF) ? -2 : +2;
-		tmp16u = *(uint16_t*)R_EDI;
-		tmp16u2 = *(uint16_t*)R_ESI;
+		tmp16u = *(uint16_t*)(BASE+R_EDI);
+		tmp16u2 = *(uint16_t*)(BASE+R_ESI);
 		R_EDI += tmp8s;
 		R_ESI += tmp8s;
 		cmp16(emu, tmp16u2, tmp16u);
@@ -317,17 +317,17 @@ switch_opcodes66:
 
 		CASE _66_0xAB :                              /* STOSW */
 		tmp8s = ACCESS_FLAG(F_DF) ? -2 : +2;
-		*(uint16_t*)R_EDI = R_AX;
+		*(uint16_t*)(BASE+R_EDI) = R_AX;
 		R_EDI += tmp8s;
 		NEXT;
 		CASE _66_0xAD :                              /* LODSW */
 		tmp8s = ACCESS_FLAG(F_DF) ? -2 : +2;
-		R_AX = *(uint16_t*)R_ESI;
+		R_AX = *(uint16_t*)(BASE+R_ESI);
 		R_ESI += tmp8s;
 		NEXT;
 		CASE _66_0xAF :                              /* SCASW */
 		tmp8s = ACCESS_FLAG(F_DF) ? -2 : +2;
-		cmp16(emu, R_AX, *(uint16_t*)R_EDI);
+		cmp16(emu, R_AX, *(uint16_t*)(BASE+R_EDI));
 		R_EDI += tmp8s;
 		NEXT;
 
@@ -432,7 +432,7 @@ switch_opcodes66:
 		case 0xA4:              /* REP MOVSB */
 			while (tmp32u) {
 				--tmp32u;
-				*(uint8_t*)R_EDI = *(uint8_t*)R_ESI;
+				*(uint8_t*)(BASE+R_EDI) = *(uint8_t*)(BASE+R_ESI);
 				R_EDI += tmp8s;
 				R_ESI += tmp8s;
 			}
@@ -440,7 +440,7 @@ switch_opcodes66:
 		case 0xA5:              /* REP MOVSW */
 			while (tmp32u) {
 				--tmp32u;
-				*(uint16_t*)R_EDI = *(uint16_t*)R_ESI;
+				*(uint16_t*)(BASE+R_EDI) = *(uint16_t*)(BASE+R_ESI);
 				R_EDI += tmp8s;
 				R_ESI += tmp8s;
 			}
@@ -450,8 +450,8 @@ switch_opcodes66:
 			tmp16u2 = 0;
 			while (tmp32u) {
 				--tmp32u;
-				tmp16u = *(uint16_t*)R_EDI;
-				tmp16u2 = *(uint16_t*)R_ESI;
+				tmp16u = *(uint16_t*)(BASE+R_EDI);
+				tmp16u2 = *(uint16_t*)(BASE+R_ESI);
 				R_EDI += tmp8s;
 				R_ESI += tmp8s;
 				if ((tmp16u == tmp16u2) == (opcode == 0xF2))
@@ -462,14 +462,14 @@ switch_opcodes66:
 		case 0xAB:              /* REP STOSW */
 			while (tmp32u) {
 				--tmp32u;
-				*(uint16_t*)R_EDI = R_AX;
+				*(uint16_t*)(BASE+R_EDI) = R_AX;
 				R_EDI += tmp8s;
 			}
 			break;
 		case 0xAD:              /* REP LODSW */
 			while (tmp32u) {
 				--tmp32u;
-				R_AX = *(uint16_t*)R_ESI;
+				R_AX = *(uint16_t*)(BASE+R_ESI);
 				R_ESI += tmp8s;
 			}
 			break;
@@ -477,7 +477,7 @@ switch_opcodes66:
 			tmp16u = 0;
 			while (tmp32u) {
 				--tmp32u;
-				tmp16u = *(uint16_t*)R_EDI;
+				tmp16u = *(uint16_t*)(BASE+R_EDI);
 				R_EDI += tmp8s;
 				if ((R_AX == tmp16u) == (opcode == 0xF2))
 					break;

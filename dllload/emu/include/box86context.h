@@ -1,7 +1,9 @@
 #ifndef __BOX86CONTEXT_H_
 #define __BOX86CONTEXT_H_
 #include <stdint.h>
-//#include <pthread.h>
+#ifndef WIN32
+#include <pthread.h>
+#endif
 //#include "pathcoll.h"
 #include "dictionnary.h"
 
@@ -123,7 +125,7 @@ typedef struct box86context_s {
     vkprocaddess_t      vkprocaddress;
     #endif
 
-    #if 0
+    #ifndef WIN32
     pthread_mutex_t     mutex_once;
     pthread_mutex_t     mutex_once2;
     pthread_mutex_t     mutex_trace;

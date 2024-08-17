@@ -5,11 +5,11 @@
             uint8_t sib = F8; \
             uintptr_t base = ((sib&0x7)==5)?(F32):(emu->regs[(sib&0x7)].dword[0]); \
             base += (emu->sbiidx[(sib>>3)&7]->sdword[0] << (sib>>6)); \
-            A = (T*)base; \
+            A = (T*)(BASE+base); \
         } else if((nextop&7)==5) { \
-            A = (T*)(F32); \
+            A = (T*)(BASE+F32); \
         } else { \
-            A = (T*)(emu->regs[nextop&7].dword[0]); \
+            A = (T*)(BASE+emu->regs[nextop&7].dword[0]); \
         } \
     } else { \
         uintptr_t base; \
@@ -21,7 +21,7 @@
             base = emu->regs[(nextop&0x7)].dword[0];    \
         } \
         base+=(nextop&0x80)?(F32S):(F8S); \
-        A = (T*)base; \
+        A = (T*)(BASE+base); \
     }
 #define getecommono(A, T, O) \
     if(!(nextop&0xC0)) { \
@@ -29,11 +29,11 @@
             uint8_t sib = F8; \
             uintptr_t base = ((sib&0x7)==5)?(F32):(emu->regs[(sib&0x7)].dword[0]); \
             base += (emu->sbiidx[(sib>>3)&7]->sdword[0] << (sib>>6)); \
-            A = (T*)(base+O); \
+            A = (T*)(BASE+base+O); \
         } else if((nextop&7)==5) { \
-            A = (T*)(F32+O); \
+            A = (T*)(BASE+F32+O); \
         } else { \
-            A = (T*)(emu->regs[nextop&7].dword[0]+O); \
+            A = (T*)(BASE+emu->regs[nextop&7].dword[0]+O); \
         } \
     } else { \
         uintptr_t base; \
@@ -45,7 +45,7 @@
             base = emu->regs[(nextop&0x7)].dword[0];    \
         } \
         base+=(nextop&0x80)?(F32S):(F8S); \
-        A = (T*)(base+O); \
+        A = (T*)(BASE+base+O); \
     }
 
 #define  getecommon16(A, T)                     \
@@ -67,7 +67,7 @@
             case 1: base += F8S; break;         \
             case 2: base += F16S; break;        \
         }                                       \
-        A =  (T*)base;                          \
+        A =  (T*)(BASE+base);                          \
     }
 
 #define  getecommon16o(A, T, O)                 \
@@ -89,7 +89,7 @@
             case 1: base += F8S; break;         \
             case 2: base += F16S; break;        \
         }                                       \
-        A =  (T*)(base+O);                      \
+        A =  (T*)(BASE+base+O);                      \
     }
 
 

@@ -28,7 +28,7 @@ typedef char CHAR;
 #endif
 
 #ifndef WIN32
-#define WIN32
+//#define WIN32
 #endif
 
 #ifdef __cplusplus

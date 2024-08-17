@@ -37,7 +37,7 @@ int CalcStackSize(box86context_t *context)
 
 uint16_t Pop16(x86emu_t *emu)
 {
-    uint16_t* st = ((uint16_t*)(R_ESP));
+    uint16_t* st = ((uint16_t*)(BASE+R_ESP));
     R_ESP += 2;
     return *st;
 }
@@ -45,11 +45,11 @@ uint16_t Pop16(x86emu_t *emu)
 void Push16(x86emu_t *emu, uint16_t v)
 {
     R_ESP -= 2;
-    *((uint16_t*)R_ESP) = v;
+    *((uint16_t*)(BASE+R_ESP)) = v;
 }
 uint32_t Pop32(x86emu_t *emu)
 {
-    uint32_t* st = ((uint32_t*)(R_ESP));
+    uint32_t* st = ((uint32_t*)(BASE+R_ESP));
     R_ESP += 4;
     return *st;
 }
@@ -57,7 +57,7 @@ uint32_t Pop32(x86emu_t *emu)
 void Push32(x86emu_t *emu, uint32_t v)
 {
     R_ESP -= 4;
-    *((uint32_t*)R_ESP) = v;
+    *((uint32_t*)(BASE+R_ESP)) = v;
 }
 
 void PushString(x86emu_t *emu, const char* s)
@@ -65,7 +65,7 @@ void PushString(x86emu_t *emu, const char* s)
     int sz = strlen(s) + 1;
     // round to 4 bytes boundary
     R_ESP -= sz;
-    memcpy((void*)R_ESP, s, sz);
+    memcpy(BASE+R_ESP, s, sz);
 }
 
 EXPORTDYN

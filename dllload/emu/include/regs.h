@@ -260,4 +260,6 @@ typedef union {
 #define CLEAR_FLAG(F)   emu->eflags.f._##F = 0
 #define CONDITIONAL_SET_FLAG(COND, F)   emu->eflags.f._##F = (COND)?1:0
 
+#define BASE emu->base
+
 #endif //__REGS_H_

@@ -2,6 +2,7 @@
 #define _CRT_DECLARE_NONSTDC_NAMES 1
 #include <io.h>
 #endif
+
 #include <stdio.h>
 #include <stdint.h>
 extern "C" {
@@ -21,19 +22,23 @@ extern "C" {
 #include <fcntl.h>
 #include <stdarg.h>
 #include <malloc.h>
+
+
+#ifdef TEST
+#include "nocfile.h"
+#else
+#include "CFILE.H"
+#endif
+#include "globals.h"
+#define INCLUDED_FROM_D3
+#include "osiris_import.h"
+#include "osiris_dll.h"
+
 #include "dminwindef.h"
 #include "dntimage.h"
 #include "dwinnt.h"
 #include "dll.h"
 #include "msafenames.h"
-
-
-//#undef WIN32
-#include "CFILE.H"
-#include "globals.h"
-#define INCLUDED_FROM_D3
-#include "osiris_import.h"
-#include "osiris_dll.h"
 #if 0
 #define FILE CFILE
 #define fopen cfopen
@@ -42,6 +47,92 @@ extern "C" {
 #define fseek cfseek
 #define fgets cfgets
 #endif
+#undef min
+#undef max
+#include <vector>
+#include <unordered_map>
+struct heapfree {
+	emu_ptr_t start, end;
+};
+
+#define MAX_TLS_VALS 20
+
+struct dll_address_space {
+	uint8_t *base;
+	emu_ptr_t img_ofs, stack_ofs, heap_ofs, heap_size;
+	emu_ptr_t size;
+	emu_ptr_t virt_ofs;
+};
+
+struct dll_t {
+	struct dll_address_space  as;
+	emu_ptr_t entry;
+	emu_ptr_t endcode, zeroword, funcode, tls_vals_ofs;
+	emu_ptr_t *tls_vals;
+	emu_ptr_t tls_next;
+	emu_ptr_t last_error;
+	IMAGE_EXPORT_DIRECTORY *exports;
+	std::unordered_map<emu_ptr_t, emu_ptr_t> allocs;
+	std::unordered_map<emu_ptr_t, heapfree *> free;
+};
+
+void heap_init(dll_t *dll, emu_ptr_t heap_start, emu_ptr_t heap_size) {
+	emu_ptr_t heap_end = heap_start + heap_size;
+	heapfree *entry = new heapfree();
+	entry->start = heap_start;
+	entry->end = heap_end;
+	dll->free.insert({heap_start, entry});
+	dll->free.insert({heap_end, entry});
+}
+
+int heap_free(dll_t *dll, emu_ptr_t start) {
+	emu_ptr_t end;
+	auto size_entry = dll->allocs.find(start);
+	if (size_entry == dll->allocs.end())
+		return -1;
+	end = start + size_entry->second;
+	auto fr_start = dll->free.find(start);
+	auto fr_end = dll->free.find(end);
+	if (fr_start != dll->free.end()) {
+		if (fr_end != dll->free.end()) {
+			fr_start->second->end = fr_end->second->end;
+			dll->free.erase(fr_end->second->start);
+			heapfree *entry = fr_end->second;
+			fr_end->second = fr_start->second;
+			delete entry;
+		} else
+			fr_start->second->end = end;
+	} else if (fr_end != dll->free.end()) {
+		fr_end->second->start = start;
+	} else {
+		heapfree *entry = new heapfree();
+		entry->start = start;
+		entry->end = end;
+		dll->free.insert({start, entry});
+		dll->free.insert({end, entry});
+	}
+	return 0;
+}
+
+emu_ptr_t heap_alloc(dll_t *dll, emu_ptr_t size) {
+	size = (size + 3) & ~3;
+	for (auto key_entry : dll->free) {
+		struct heapfree *entry = key_entry.second;
+		if (entry->end - entry->start >= size) {
+			emu_ptr_t ret = entry->start;
+			entry->start += size;
+			dll->free.erase(ret);
+			if (entry->start == entry->end) {
+				dll->free.erase(entry->end);
+				delete entry;
+			} else
+				dll->free.insert({entry->start, entry});
+			dll->allocs.insert({ret, size});
+			return ret;
+		}
+	}
+	return 0;
+}
 
 #if 0
 struct {
@@ -73,7 +164,7 @@ box86context_t bc, *my_context = &bc;
 uint32_t default_fs;
 uintptr_t trace_start, trace_end;
 int trace_xmm, trace_emm;
-void* getAlternate(void* addr) { return addr; }
+//void* getAlternate(void* addr) { return addr; }
 uint32_t RunFunctionWithEmu(x86emu_t *emu, int QuitOnLongJump, uintptr_t fnc, int nargs, ...) { return 0; }
 void emit_signal(x86emu_t* emu, int sig, void* addr, int code) {
 	do_int(emu, sig, INTR_TYPE_FAULT);
@@ -154,13 +245,15 @@ x86emu_t *emu_new()
 }
 
 
-unsigned tls_vars = 1;
-unsigned tls_vals[20];
-unsigned last_error;
+//unsigned tls_vars = 1;
+//unsigned tls_vals[20];
+//unsigned last_error;
 #define ELMS(x) (sizeof(x)/sizeof((x)[0]))
 #define TLS_OUT_OF_INDEXES 0xffffffff
 #define ERROR_INVALID_PARAMETER 87
+#define ERROR_NOT_ENOUGH_MEMORY 8
 
+#if 0
 struct heap {
 	int size;
 	int limit;
@@ -214,16 +307,18 @@ void heap_done(struct heap *heap) {
 	free(heap->allocs);
 	free(heap);
 }
+#endif
 
 static x86emu_t *emu;
 static void *funcode;
 static void *stack;
+static dll_t *curdll;
 
 unsigned myGetStdHandle(unsigned type) { return 1; }
 unsigned myWriteFile(unsigned hFile, unsigned buf, unsigned size, unsigned pret, unsigned ovl) {
-	int ret = write((int)hFile, (void *)buf, size);
+	int ret = write((int)hFile, BASE + buf, size);
 	if (pret && ret >= 0)
-		*(unsigned *)pret = ret;
+		*(unsigned *)(BASE + pret) = ret;
 	return ret >= 0;
 }
 unsigned myVirtualAlloc(unsigned lpAddress, unsigned dwSize, unsigned flAllocationType, unsigned flProtect) {
@@ -232,27 +327,34 @@ unsigned myVirtualAlloc(unsigned lpAddress, unsigned dwSize, unsigned flAllocati
 	#else
 	if (lpAddress)
 		return flAllocationType == 0x1000 ? lpAddress : 0;
-	return (unsigned)memalign(4096, dwSize);
+	//return (unsigned)((uint8_t*)memalign(4096, dwSize) - curdll->as.base);
+	if (curdll->as.virt_ofs + dwSize > curdll->as.size) {
+		curdll->last_error = ERROR_NOT_ENOUGH_MEMORY;
+		return 0;
+	}
+	unsigned ret = curdll->as.virt_ofs;
+	curdll->as.virt_ofs += dwSize;
+	return ret;
 	#endif
 }
 unsigned myIsBadWritePtr(unsigned a, unsigned b) { return 0; }
 unsigned myIsBadReadPtr(unsigned a, unsigned b) { return 0; }
 unsigned myHeapValidate(unsigned a, unsigned b, unsigned c) { return 1; }
-unsigned myGetCommandLineA() { return (unsigned)""; }
+unsigned myGetCommandLineA() { return curdll->zeroword; /*""*/ }
 unsigned myGetVersion() { return 0; }
-unsigned myGetProcAddress(unsigned lib, unsigned name) { printf("getprocaddr %x %s\n", lib, (char *)name); return 0; }
-unsigned myGetModuleHandleA(unsigned name) { static int mod = 0; printf("getmodhan %s\n", (char *)name); return (unsigned)&mod; }
+unsigned myGetProcAddress(unsigned lib, unsigned name) { printf("getprocaddr %x %s\n", lib, (char *)(BASE + name)); return 0; }
+unsigned myGetModuleHandleA(unsigned name) { printf("getmodhan %s\n", name ? (char *)(BASE + name) : NULL); return curdll->zeroword; }
 unsigned myGetCurrentThreadId() { return 0; }
-unsigned myTlsSetValue(unsigned n, unsigned val) { if (n >= tls_vars) { last_error = ERROR_INVALID_PARAMETER; return 0; } tls_vals[n] = val; return 1; }
-unsigned myTlsAlloc() { if (tls_vars == ELMS(tls_vals)) return TLS_OUT_OF_INDEXES; return tls_vars++; }
-unsigned myTlsFree(unsigned v) { if (v == tls_vars - 1) tls_vars--; return 1; }
-unsigned mySetLastError(unsigned err) { last_error = err; return 0; }
-unsigned myTlsGetValue(unsigned n) { if (n < tls_vars) { last_error = 0; return tls_vals[n]; } last_error = ERROR_INVALID_PARAMETER; return 0; }
-unsigned myGetLastError() { return last_error; }
+unsigned myTlsSetValue(unsigned n, unsigned val) { if (n >= curdll->tls_next) { curdll->last_error = ERROR_INVALID_PARAMETER; return 0; } curdll->tls_vals[n] = val; return 1; }
+unsigned myTlsAlloc() { if (curdll->tls_next == MAX_TLS_VALS) return TLS_OUT_OF_INDEXES; return curdll->tls_next++; }
+unsigned myTlsFree(unsigned v) { if (v == curdll->tls_next - 1) curdll->tls_next--; return 1; }
+unsigned mySetLastError(unsigned err) { curdll->last_error = err; return 0; }
+unsigned myTlsGetValue(unsigned n) { if (n < curdll->tls_next) { curdll->last_error = 0; return curdll->tls_vals[n]; } curdll->last_error = ERROR_INVALID_PARAMETER; return 0; }
+unsigned myGetLastError() { return curdll->last_error; }
 unsigned myDebugBreak() { return 0; }
 unsigned myInterlockedDecrement(unsigned a) { return 0; }
-unsigned myOutputDebugStringA(unsigned msg) { printf("OutputDebugString: %s\n", (char *)msg); return 0; }
-unsigned myLoadLibraryA(unsigned name) { printf("loadlib %s\n", (char *)name); return 0; }
+unsigned myOutputDebugStringA(unsigned msg) { printf("OutputDebugString: %s\n", (char *)(BASE + msg)); return 0; }
+unsigned myLoadLibraryA(unsigned name) { printf("loadlib %s\n", (char *)(BASE + name)); return 0; }
 unsigned myInterlockedIncrement(unsigned a) { return 0; }
 unsigned myGetModuleFileNameA(unsigned a, unsigned b, unsigned c) { return 0; }
 unsigned myExitProcess(unsigned a) { x86emu_stop(emu); return 0; }
@@ -263,33 +365,41 @@ unsigned myDeleteCriticalSection(unsigned a) { return 0; }
 unsigned myEnterCriticalSection(unsigned a) { return 0; }
 unsigned myLeaveCriticalSection(unsigned a) { return 0; }
 unsigned myRtlUnwind(unsigned a, unsigned b, unsigned c, unsigned d) { return 0; }
-unsigned myHeapAlloc(unsigned heap, unsigned flags, unsigned size) { unsigned ptr = (unsigned)malloc(size); heap_add((struct heap *)heap, ptr); return ptr; }
+#if 0
+unsigned myHeapAlloc(unsigned heap, unsigned flags, unsigned size) { unsigned ptr = (unsigned)((uint8_t *)malloc(size) - BASE); heap_add((struct heap *)(BASE + heap), ptr); return ptr; }
+unsigned myHeapFree(unsigned heap, unsigned b, unsigned ptr) { if (!heap_del((struct heap *)(BASE + heap), ptr)) return 0; free(BASE + ptr); return 1; }
 unsigned myHeapReAlloc(unsigned a, unsigned b, unsigned c, unsigned d) { return 0; }
-unsigned myHeapFree(unsigned heap, unsigned b, unsigned ptr) { if (!heap_del((struct heap *)heap, ptr)) return 0; free((void *)ptr); return 1; }
-unsigned myVirtualFree(unsigned ptr, unsigned b, unsigned free_type) { if (free_type == MEM_RELEASE) free((void *)ptr); return 1; }
+unsigned myHeapDestroy(unsigned heap) { heap_free_all((struct heap *)(BASE + heap)); heap_done((struct heap *)heap); return 1; }
+unsigned myHeapCreate(unsigned a, unsigned b, unsigned c) { return (unsigned)((uint8_t *)heap_create() - BASE); }
+#else
+unsigned myHeapAlloc(unsigned heap, unsigned flags, unsigned size) { unsigned ret = heap_alloc(curdll, size); if (!ret) curdll->last_error = ERROR_NOT_ENOUGH_MEMORY; return ret; }
+unsigned myHeapReAlloc(unsigned a, unsigned b, unsigned c, unsigned d) { return 0; }
+unsigned myHeapFree(unsigned heap, unsigned b, unsigned ptr) { if (heap_free(curdll, ptr)) { curdll->last_error = ERROR_INVALID_PARAMETER; return 0; } return 1; }
+unsigned myHeapDestroy(unsigned heap) { return 1; }
+unsigned myHeapCreate(unsigned a, unsigned b, unsigned c) { return 0x10000; }
+#endif
+unsigned myVirtualFree(unsigned ptr, unsigned b, unsigned free_type) { /*if (free_type == MEM_RELEASE) free((void *)ptr);*/ return 1; }
 unsigned myGetEnvironmentVariableA(unsigned a, unsigned b, unsigned c) { return 0; }
 unsigned myGetVersionExA(unsigned a) { return 0; }
-unsigned myHeapDestroy(unsigned heap) { heap_free_all((struct heap *)heap); heap_done((struct heap *)heap); return 1; }
-unsigned myHeapCreate(unsigned a, unsigned b, unsigned c) { return (unsigned)heap_create(); }
 unsigned myGetCPInfo(unsigned a, unsigned b) { return 0; }
 unsigned myGetACP() { return 1252; }
 unsigned myGetOEMCP() { return 437; }
 unsigned mySetHandleCount(unsigned a) { return 0; }
 unsigned myGetFileType(unsigned a) { return 0; }
-unsigned myGetStartupInfoA(unsigned info) { memset((void *)info, 0, 17 * 4); return 0; }
+unsigned myGetStartupInfoA(unsigned info) { memset((BASE + info), 0, 17 * 4); return 0; }
 unsigned myFreeEnvironmentStringsA(unsigned a) { return 0; }
 unsigned myFreeEnvironmentStringsW(unsigned a) { return 0; }
 unsigned myWideCharToMultiByte(unsigned a, unsigned b, unsigned srcn, unsigned srclen, unsigned destn, unsigned destlen, unsigned x, unsigned y) {
-	uint16_t *src = (uint16_t *)srcn;
-	uint8_t *dest = (uint8_t *)destn, *p = dest;
+	uint16_t *src = (uint16_t *)(BASE + srcn);
+	uint8_t *dest = (uint8_t *)(BASE + destn), *p = dest;
 	if (srclen == 0xffffffff) { uint16_t *ps = src; while (*ps++) {} srclen = ps - src; }
 	if (!dest)
 		return srclen;
 	while (srclen-- && destlen--) *p++ = *src++;
 	return p - dest;
 }
-unsigned myGetEnvironmentStrings() { static uint8_t strs[] = {0, 0}; return (unsigned)&strs; }
-unsigned myGetEnvironmentStringsW() { static uint16_t strs[] = {0, 0}; return (unsigned)&strs; }
+unsigned myGetEnvironmentStrings() { /*static uint8_t strs[] = {0, 0};*/ return curdll->zeroword; }
+unsigned myGetEnvironmentStringsW() { /*static uint16_t strs[] = {0, 0};*/ return curdll->zeroword; }
 unsigned mySetFilePointer(unsigned a, unsigned b, unsigned c, unsigned d) { return 0; }
 unsigned myMultiByteToWideChar(unsigned a, unsigned b, unsigned c, unsigned d, unsigned e, unsigned f) { return 0; }
 unsigned myGetStringTypeA(unsigned a, unsigned b, unsigned c, unsigned d, unsigned e) { return 0; }
@@ -301,64 +411,80 @@ unsigned mySetStdHandle(unsigned a, unsigned b) { return 0; }
 unsigned myFlushFileBuffers(unsigned a) { return 0; }
 unsigned myCloseHandle(unsigned a) { return 0; }
 
+#define MAX_FILES 20
+CFILE *files[MAX_FILES];
+
 unsigned File_Open(unsigned name, unsigned mode) {
-	printf("File_Open %s %s\n", (char *)name, (char *)mode);
-	return (unsigned)cfopen((char *)name, (char *)mode);
+	unsigned f = 1;
+	while (f < MAX_FILES && !files[f])
+		f++;
+	if (f == MAX_FILES)
+		return 0;
+	printf("File_Open %s %s\n", (char *)(BASE + name), (char *)(BASE + mode));
+	files[f] = cfopen((char *)(BASE + name), (char *)(BASE + mode));
+	return f;
 }
 
 unsigned File_eof(unsigned f) {
-	return cfeof((CFILE *)f);
+	if (f >= MAX_FILES || !files[f])
+		return 0;
+	return cfeof(files[f]);
 }
 
 unsigned File_ReadString(unsigned buf, unsigned size, unsigned f) {
-	return (unsigned)cf_ReadString((char *)buf, size, (CFILE *)f);
+	if (f >= MAX_FILES || !files[f])
+		return 0;
+	return (unsigned)cf_ReadString((char *)(BASE + buf), size, files[f]);
 }
 
 unsigned File_Close(unsigned f) {
-	cfclose((CFILE *)f);
+	if (f >= MAX_FILES || !files[f])
+		return 0;
+	cfclose(files[f]);
+	files[f] = NULL;
 	return 0;
 }
 
 unsigned FindName(unsigned name) {
-	printf("FindName %s\n", (char *)name);
+	printf("FindName %s\n", (char *)(BASE + name));
 	return 0;
 }
 unsigned Scrpt_FindObjectName(unsigned name) {
-	printf("FindObjectName %s\n", (char *)name);
-	return osipf_FindObjectName((char *)name);
+	printf("FindObjectName %s\n", (char *)(BASE + name));
+	return osipf_FindObjectName((char *)(BASE + name));
 }
 unsigned Scrpt_FindRoomName(unsigned name) {
-	printf("FindRoomName %s\n", (char *)name);
-	return osipf_FindRoomName((char *)name);
+	printf("FindRoomName %s\n", (char *)(BASE + name));
+	return osipf_FindRoomName((char *)(BASE + name));
 }
 unsigned Scrpt_FindTriggerName(unsigned name) {
-	printf("FindTriggerName %s\n", (char *)name);
-	return osipf_FindTriggerName((char *)name);
+	printf("FindTriggerName %s\n", (char *)(BASE + name));
+	return osipf_FindTriggerName((char *)(BASE + name));
 }
 unsigned Scrpt_FindLevelGoalName(unsigned name) {
-	printf("FindLevelGoalName %s\n", (char *)name);
-	return osipf_FindLevelGoalName((char *)name);
+	printf("FindLevelGoalName %s\n", (char *)(BASE + name));
+	return osipf_FindLevelGoalName((char *)(BASE + name));
 }
 unsigned Scrpt_FindTextureName(unsigned name) {
-	printf("FindTextureName %s\n", (char *)name);
-	return osipf_FindTextureName((char *)name);
+	printf("FindTextureName %s\n", (char *)(BASE + name));
+	return osipf_FindTextureName((char *)(BASE + name));
 }
 unsigned Scrpt_GetTriggerFace(unsigned trigger) { return osipf_GetTriggerFace(trigger); }
 unsigned Scrpt_GetTriggerRoom(unsigned trigger) { return osipf_GetTriggerRoom(trigger); }
-unsigned Scrpt_CreateTimer(unsigned timer) { return Osiris_CreateTimer((tOSIRISTIMER *)timer); }
+unsigned Scrpt_CreateTimer(unsigned timer) { return Osiris_CreateTimer((tOSIRISTIMER *)(BASE + timer)); }
 unsigned Cine_StartCanned(unsigned info) { return 0; }
 extern void msafe_CallFunction(ubyte type, msafe_struct *mstruct);
 extern void msafe_GetValue(ubyte type, msafe_struct *mstruct);
 extern void msafe_DoPowerup(msafe_struct *mstruct);
 extern void osipf_LGoalValue(char action,char type,void *val,int goal,int item);
-extern void osipf_MatcenValue(int h,char op,char type,void *val,int prod);
+extern void osipf_MatcenValue(int h,char op,char type,void *val,intptr_t prod);
 union bitfloat { unsigned bit; float f; };
 extern void osipf_ObjectCustomAnim(int objnum,float start,float end,float time,char flags,int sound,char next_type);
-unsigned MSafe_CallFunction(unsigned type, unsigned mstruct) { msafe_CallFunction(type, (msafe_struct *)mstruct); return 0;}
-unsigned MSafe_GetValue(unsigned type, unsigned mstruct) { msafe_GetValue(type, (msafe_struct *)mstruct); return 0;}
-unsigned MSafe_DoPowerup(unsigned mstruct) { printf("mpowerup\n"); msafe_DoPowerup((msafe_struct *)mstruct); return 0;}
-unsigned LGoal_Value(unsigned act, unsigned type, unsigned val, unsigned goal, unsigned item) { osipf_LGoalValue(act, type, (void *)val, goal, item); return 0; }
-unsigned Matcen_Value(unsigned h,unsigned op, unsigned type, unsigned val, unsigned prod) { osipf_MatcenValue(h, op, type, (void *)val, prod); return 0; }
+unsigned MSafe_CallFunction(unsigned type, unsigned mstruct) { msafe_CallFunction(type, (msafe_struct *)(BASE + mstruct)); return 0;}
+unsigned MSafe_GetValue(unsigned type, unsigned mstruct) { msafe_GetValue(type, (msafe_struct *)(BASE + mstruct)); return 0;}
+unsigned MSafe_DoPowerup(unsigned mstruct) { printf("mpowerup\n"); msafe_DoPowerup((msafe_struct *)(BASE + mstruct)); return 0;}
+unsigned LGoal_Value(unsigned act, unsigned type, unsigned val, unsigned goal, unsigned item) { osipf_LGoalValue(act, type, (BASE + val), goal, item); return 0; }
+unsigned Matcen_Value(unsigned h,unsigned op, unsigned type, unsigned val, unsigned prod) { osipf_MatcenValue(h, op, type, (BASE + val), prod); return 0; }
 unsigned Obj_SetCustomAnim(unsigned objnum,unsigned start,unsigned end,unsigned time,unsigned flags,unsigned sound,unsigned next_type) {
 	union bitfloat start_float = { start }, end_float = { end }, time_float = { time };
 	osipf_ObjectCustomAnim(objnum,start_float.f,end_float.f,time_float.f,flags,sound,next_type);
@@ -446,28 +572,31 @@ struct {
 	{"SetStdHandle", 2, {.fun2 = mySetStdHandle}},
 	{"FlushFileBuffers", 1, {.fun1 = myFlushFileBuffers}},
 	{"CloseHandle", 1, {.fun1 = myCloseHandle}},
-	{"mprintf", -1 },
-	{"File_Open", 2 | 0x100, {.fun2 = File_Open}},
-	{"File_eof", 1 | 0x100, {.fun1 = File_eof}},
-	{"File_ReadString", 3 | 0x100, {.fun3 = File_ReadString}},
-	{"File_Close", 1 | 0x100, {.fun1 = File_Close}},
-	{"FindName", 1 | 0x100, {.fun1 = FindName}},
-	{"Scrpt_FindObjectName", 1 | 0x100, {.fun1 = Scrpt_FindObjectName}},
-	{"Scrpt_FindRoomName", 1 | 0x100, {.fun1 = Scrpt_FindRoomName}},
-	{"Scrpt_FindTriggerName", 1 | 0x100, {.fun1 = Scrpt_FindTriggerName}},
-	{"Scrpt_FindLevelGoalName", 1 | 0x100, {.fun1 = Scrpt_FindLevelGoalName}},
-	{"Scrpt_FindTextureName", 1 | 0x100, {.fun1 = Scrpt_FindTextureName}},
-	{"Scrpt_GetTriggerFace", 1 | 0x100, {.fun1 = Scrpt_GetTriggerFace}},
-	{"Scrpt_GetTriggerRoom", 1 | 0x100, {.fun1 = Scrpt_GetTriggerRoom}},
-	{"Scrpt_CreateTimer", 1 | 0x100, {.fun1 = Scrpt_CreateTimer}},
-	{"Cine_StartCanned", 1 | 0x100, {.fun1 = Cine_StartCanned}},
-	{"MSafe_CallFunction", 2 | 0x100, {.fun2 = MSafe_CallFunction}},
-	{"MSafe_GetValue", 2 | 0x100, {.fun2 = MSafe_GetValue}},
-	{"MSafe_DoPowerup", 1 | 0x100, {.fun1 = MSafe_DoPowerup}},
-	{"Obj_SetCustomAnim", 7 | 0x100, {.fun7 = Obj_SetCustomAnim}},
-	{"Obj_Kill", 6 | 0x100, {.fun6 = Obj_Kill}},
-	{"LGoal_Value", 5 | 0x100, {.fun5 = LGoal_Value}},
-	{"Matcen_Value", 5 | 0x100, {.fun5 = Matcen_Value}},
+	{"MonoPrintf", -1 },
+	{"osipf_CFopen", 2 | 0x100, {.fun2 = File_Open}},
+	{"osipf_CFeof", 1 | 0x100, {.fun1 = File_eof}},
+	{"osipf_CFReadtring", 3 | 0x100, {.fun3 = File_ReadString}},
+	{"osipf_CFclose", 1 | 0x100, {.fun1 = File_Close}},
+	{"osipf_FindDoorName", 1 | 0x100, {.fun1 = FindName}},
+	{"osipf_FindSoundName", 1 | 0x100, {.fun1 = FindName}},
+	{"osipf_FindPathName", 1 | 0x100, {.fun1 = FindName}},
+	{"osipf_FindMatcenName", 1 | 0x100, {.fun1 = FindName}},
+	{"osipf_FindObjectName", 1 | 0x100, {.fun1 = Scrpt_FindObjectName}},
+	{"osipf_FindRoomName", 1 | 0x100, {.fun1 = Scrpt_FindRoomName}},
+	{"osipf_FindTriggerName", 1 | 0x100, {.fun1 = Scrpt_FindTriggerName}},
+	{"osipf_FindLevelGoalName", 1 | 0x100, {.fun1 = Scrpt_FindLevelGoalName}},
+	{"osipf_FindTextureName", 1 | 0x100, {.fun1 = Scrpt_FindTextureName}},
+	{"osipf_GetTriggerFace", 1 | 0x100, {.fun1 = Scrpt_GetTriggerFace}},
+	{"osipf_GetTriggerRoom", 1 | 0x100, {.fun1 = Scrpt_GetTriggerRoom}},
+	{"Osiris_CreateTimer", 1 | 0x100, {.fun1 = Scrpt_CreateTimer}},
+	{"Cinematic_StartCannedScript", 1 | 0x100, {.fun1 = Cine_StartCanned}},
+	{"msafe_CallFunction", 2 | 0x100, {.fun2 = MSafe_CallFunction}},
+	{"msafe_GetValue", 2 | 0x100, {.fun2 = MSafe_GetValue}},
+	{"msafe_DoPowerup", 1 | 0x100, {.fun1 = MSafe_DoPowerup}},
+	{"osipf_ObjectCustomAnim", 7 | 0x100, {.fun7 = Obj_SetCustomAnim}},
+	{"osipf_ObjKill", 6 | 0x100, {.fun6 = Obj_Kill}},
+	{"osipf_LGoalValue", 5 | 0x100, {.fun5 = LGoal_Value}},
+	{"osipf_MatcenValue", 5 | 0x100, {.fun5 = Matcen_Value}},
 	};
 #define MAX_FUNS (sizeof(funs) / sizeof(funs[0]))
 
@@ -481,10 +610,10 @@ int do_int(x86emu_t *emu, u8 num, unsigned type)
 	}
 	if (num == 0x80 && EMU_R_AL < MAX_FUNS) {
 		int n = EMU_R_AL;
-		unsigned *buf = (unsigned *)EMU_R_ESP;
+		emu_ptr_t *buf = (emu_ptr_t *)(BASE + EMU_R_ESP);
 		int c = funs[n].args == -1 ? -1 : funs[n].args & 0xff;
 		#ifndef __EMSCRIPTEN__
-		printf("run fun %d %s", n, funs[n].name);
+		printf("run fun %d %s ret %x", n, funs[n].name, buf[0]);
 		bool msafe = strncmp(funs[n].name,"MSafe_", 6)==0 && funs[n].name[6] != 'D';
 		for (int i = 0; i < c; i++) {
 			printf(" %x", buf[i + 1]);
@@ -494,7 +623,8 @@ int do_int(x86emu_t *emu, u8 num, unsigned type)
 		#endif
 		switch (c) {
 			case -1:
-				vprintf((const char *)buf[2], (va_list)&buf[3]);
+				//vprintf((char *)(BASE + buf[2]), (va_list)(BASE + buf[3]));
+				printf("%s", (char *)(BASE + buf[2]));
 				break;
 			case 0:
 				EMU_R_EAX = funs[n].fun0();
@@ -572,11 +702,14 @@ void *mapfile(const char *filename, intptr_t base, int *psize) {
 }
 #endif
 
-void *readfile(const char *filename, unsigned *psize) {
+
+// return vmbase, img, stack, heap ofs
+uint8_t *read_file(const char *filename, struct dll_address_space *as) {
 	CFILE *f;
-	void *ptr = NULL;
+	uint8_t *base = NULL;
 	IMAGE_DOS_HEADER dos;
 	IMAGE_NT_HEADERS nt;
+	emu_ptr_t img_ofs, stack_size, heap_size, img_size, align;
 	
 	if (!(f = cfopen(filename, "rb"))) {
 		perror(filename);
@@ -596,40 +729,63 @@ void *readfile(const char *filename, unsigned *psize) {
 		goto read_err;
 	if ((unsigned)size > nt.OptionalHeader.SizeOfImage)
 		size = nt.OptionalHeader.SizeOfImage;
-	//if (!(ptr = memalign(0x1000, nt.OptionalHeader.SizeOfImage))) {
-	if (!(ptr = VirtualAlloc((void*)0 /*0x10000000*/, nt.OptionalHeader.SizeOfImage, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE))) {//mmap((void *)0x10000000, nt.OptionalHeader.SizeOfImage, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0))) {
+	img_ofs = 0x10000;
+	stack_size = 0x10000;
+	heap_size = 0x10000;
+	img_size = nt.OptionalHeader.SizeOfImage;
+	img_size = (img_size + 0xffff) & ~0xffff;
+
+	as->img_ofs = img_ofs;
+	as->heap_ofs = img_ofs + img_size;
+	as->heap_size = heap_size;
+	as->stack_ofs = as->heap_ofs + stack_size;
+	as->size = as->stack_ofs;
+	align = 16 * 1048576;
+	as->size = (as->size + align - 1) & ~(align - 1);
+	as->virt_ofs = as->stack_ofs;
+
+	#ifndef WIN32
+	if (!(base = (uint8_t *)memalign(align, as->size))) {
+	#else
+	if (!(base = (uint8_t *)VirtualAlloc((void*)0 /*0x10000000*/, nt.OptionalHeader.SizeOfImage, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE))) {//mmap((void *)0x10000000, nt.OptionalHeader.SizeOfImage, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0))) {
+	#endif
 		perror("memalign");
 		return NULL;
 	}
-	if (psize)
-		*psize = nt.OptionalHeader.SizeOfImage;
+	//if (psize)
+	//	*psize = nt.OptionalHeader.SizeOfImage;
+	as->base = base;
 	cfseek(f, 0, SEEK_SET);	
-	if (cf_ReadBytes((ubyte *)ptr, size, f) != size)
+	if (cf_ReadBytes(as->base + as->img_ofs, size, f) != (size_t)size)
 		goto read_err;
 	cfclose(f);
-	return ptr;
+	return as->base + as->img_ofs;
 read_err:
 	perror(filename);
 	cfclose(f);
-	if (ptr)
-		free(ptr);
+	if (base)
+		free(base);
 	return NULL;
 }
 
-void *mk_funcode() {
-	char *funcode = (char *)malloc(MAX_FUNS * 5);
+// funcode must have MAX_FUNS * 5 bytes
+int funcode_size() {
+	return MAX_FUNS * 5;
+}
+
+void gen_funcode(uint8_t *funcode) {
 	for (unsigned i = 0; i < MAX_FUNS; i++) {
-		char *fun = funcode + i * 5;
+		uint8_t *fun = funcode + i * 5;
 		*fun++ = 0xb0; // mov ah, constant
 		*fun++ = i;
 		*fun++ = 0xcd; // int 0x80
 		*fun++ = 0x80;
 		*fun++ = 0xc3;  // ret
 	}
-	return funcode;
 }
 
-
+// pFile is source (mapped) file
+// pBase is destination memory
 void image_setup_sections(IMAGE_NT_HEADERS *ntHdr, void *pFile, void *pBase) {
 	PIMAGE_SECTION_HEADER firstSect = (IMAGE_SECTION_HEADER *)((char *)ntHdr + sizeof(IMAGE_NT_HEADERS));
 	for (int sectIdx = ntHdr->FileHeader.NumberOfSections - 1; sectIdx >= 0; sectIdx--) {
@@ -648,12 +804,12 @@ void image_setup_sections(IMAGE_NT_HEADERS *ntHdr, void *pFile, void *pBase) {
 	}
 }
 
-void image_reloc(IMAGE_NT_HEADERS *ntHdr, void *pBase) {
+void image_reloc(IMAGE_NT_HEADERS *ntHdr, void *pBase, emu_ptr_t img_ofs) {
 	IMAGE_DATA_DIRECTORY *reloc_dir = &ntHdr->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC];
 	IMAGE_BASE_RELOCATION *reloc = (IMAGE_BASE_RELOCATION *)((char *)pBase + reloc_dir->VirtualAddress);
 	IMAGE_BASE_RELOCATION *reloc_end = (IMAGE_BASE_RELOCATION *)((char *)pBase + reloc_dir->VirtualAddress + reloc_dir->Size);
 	
-	DWORD delta = (DWORD)pBase - ntHdr->OptionalHeader.ImageBase;
+	DWORD delta = img_ofs - ntHdr->OptionalHeader.ImageBase;
 	while (reloc < reloc_end) {
 		DWORD va = reloc->VirtualAddress, size = reloc->SizeOfBlock;
 		if (!size)
@@ -674,15 +830,15 @@ void image_reloc(IMAGE_NT_HEADERS *ntHdr, void *pBase) {
 	}
 }
 
-unsigned find_fun(const char *name) {
+emu_ptr_t find_fun(dll_t *dll, const char *name) {
 	for (unsigned i = 0; i < MAX_FUNS; i++)
 		if (strcmp(name, funs[i].name) == 0)
-			return (DWORD)((char *)funcode + i * 5);
+			return dll->funcode + i * 5;
 	printf("not found %s\n", name);
 	return 0;
 }
 
-void image_import(IMAGE_NT_HEADERS *ntHdr, void *pBase) {
+void image_import(dll_t *dll, IMAGE_NT_HEADERS *ntHdr, void *pBase) {
 	IMAGE_DATA_DIRECTORY *dir = &ntHdr->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
 	IMAGE_IMPORT_DESCRIPTOR *imp = (IMAGE_IMPORT_DESCRIPTOR *)((char *)pBase + dir->VirtualAddress);
 	for (; imp->Name; imp++) {
@@ -704,14 +860,15 @@ void image_import(IMAGE_NT_HEADERS *ntHdr, void *pBase) {
 		for (; src->u1.AddressOfData; src++, dst++) {
 			const char *name;
 			if (IMAGE_SNAP_BY_ORDINAL(src->u1.Ordinal)) {
-				name = (char *)IMAGE_ORDINAL(src->u1.Ordinal);
+				//name = (char *)IMAGE_ORDINAL(src->u1.Ordinal);
+				name = NULL;
 				printf("ordinal %d\n", src->u1.Ordinal);
 			} else {
 				PIMAGE_IMPORT_BY_NAME pImport = (IMAGE_IMPORT_BY_NAME *)((char *)pBase + src->u1.AddressOfData);
 				name = (char *)pImport->Name;
 				//printf("import function %s\n", name);
 				//dst->u1.Function = 0; //NULL; //(DWORD)GetProcAddress(lib, name);
-				dst->u1.Function = find_fun(name);
+				dst->u1.Function = find_fun(dll, name);
 			}
 			if (!dst->u1.Function) {
 				printf("\t{\"%s\", my%s, 0},\n", name, name);
@@ -721,14 +878,6 @@ void image_import(IMAGE_NT_HEADERS *ntHdr, void *pBase) {
 		}
 	}
 }
-
-struct dll {
-	void *mem;
-	unsigned memsize;
-	unsigned entry;
-	IMAGE_EXPORT_DIRECTORY *exports;	
-};
-
 
 void dll_done() {
 	if (!emu)
@@ -744,10 +893,11 @@ void dll_done() {
 void dll_init() {
 	if (emu)
 		return;
-	static uint8_t endcode[] = {0xcc, 'S', 'C'};
-	static unsigned unwind2[] = {(unsigned)-1, (unsigned)&endcode, (unsigned)&endcode};
+	//static uint8_t endcode[] = {0xcc, 'S', 'C'};
+	//static unsigned unwind2[] = {(unsigned)-1, (unsigned)&endcode, (unsigned)&endcode};
 	emu = emu_new();
-	funcode = mk_funcode();
+	/*
+	//funcode = gen_funcode();
 	int stack_size = 1048576;
 	stack = malloc(stack_size);
 	EMU_R_ESP = (unsigned)stack + stack_size;
@@ -757,62 +907,96 @@ void dll_init() {
 	Push32(emu, 0);
 	tls_vals[0] = EMU_R_ESP;
 	emu->segs_offs[_FS] = (uint32_t)&tls_vals;
+	*/
 	atexit(dll_done);
 	msafenames_init();
 }
 
-unsigned emucall(x86emu_t *emu, unsigned ip) {
-	static uint8_t endcode[] = {0xcc, 'S', 'C'};
-	Push32(emu, (unsigned)&endcode);
+unsigned emucall(dll_t *dll, x86emu_t *emu, unsigned ip) {
+	curdll = dll;
+	emu->segs_offs[_FS] = dll->tls_vals_ofs;
+	Push32(emu, dll->endcode);
 	R_EIP = ip;
 	Run(emu, 0);
 	emu->quit = 0;
+	curdll = NULL;
 	return R_EAX;
 }
 
-unsigned dllfun_call(unsigned fun, int argc, ...) {
+unsigned dllfun_call(dll_t *dll, unsigned fun, int argc, ...) {
 	va_list vp;
 	va_start(vp, argc);
+	BASE = dll->as.base;
+	R_ESP = dll->as.stack_ofs;
 	R_ESP -= argc * 4;
 	for (int i = 0; i < argc; i++)
-		*(unsigned *)(R_ESP + i * 4) = va_arg(vp, unsigned);
-	unsigned ret = emucall(emu, fun);
+		*(unsigned *)(dll->as.base + R_ESP + i * 4) = va_arg(vp, unsigned);
+	unsigned ret = emucall(dll, emu, fun);
 	va_end(vp);
 	return ret;
 }
 
-struct dll *dll_load(const char *filename) {
-	void *pFile, *pBase;
-	struct dll *dll;
+dll_t *dll_load(const char *filename) {
+	uint8_t *pFile, *pBase;
+	dll_t *dll;
 	
-	if (!(dll = (struct dll *)malloc(sizeof(*dll))))
+	dll = new dll_t();
+
+	if (!(pFile = read_file(filename, &dll->as)))
 		return 0;
 
-	if (!(pFile = readfile(filename, &dll->memsize)))
-		return 0;
+	memset(dll->as.base, 0xcc, 256);
+
+	dll->as.stack_ofs -= 4;
+	dll->endcode = dll->as.stack_ofs;
+	static uint8_t endcode[] = {0xcc, 'S', 'C'};
+	memcpy(dll->as.base + dll->endcode, endcode, sizeof(endcode));
+
+	dll->as.stack_ofs -= 4;
+	dll->zeroword = dll->as.stack_ofs;
+	memset(dll->as.base + dll->zeroword, 0, 4);
+
+	dll->as.stack_ofs -= (funcode_size() + 3) & ~3;
+	dll->funcode = dll->as.stack_ofs;
+	gen_funcode(dll->as.base + dll->funcode);
+
+	dll->as.stack_ofs -= MAX_TLS_VALS * 4;
+	dll->tls_vals_ofs = dll->as.stack_ofs;
+	dll->tls_vals = (emu_ptr_t *)(dll->as.base + dll->tls_vals_ofs);
+	memset(dll->tls_vals, 0, MAX_TLS_VALS * 4);
+	dll->tls_next = 0;
+
+	static emu_ptr_t unwind2[] = {(emu_ptr_t)-1, dll->endcode, dll->endcode};
+	dll->as.stack_ofs -= sizeof(unwind2);
+	dll->tls_vals[0] = dll->as.stack_ofs;
+	memcpy(dll->as.base + dll->tls_vals[0], unwind2, sizeof(unwind2));
+
+	dll->last_error = 0;
 
 	IMAGE_DOS_HEADER *pDosHeader = (IMAGE_DOS_HEADER *)pFile;
 	IMAGE_NT_HEADERS *ntHdr = (IMAGE_NT_HEADERS *)((char *)pFile + pDosHeader->e_lfanew);
 
 	pBase = pFile;
 	image_setup_sections(ntHdr, pFile, pBase);
-	image_reloc(ntHdr, pBase);
-	image_import(ntHdr, pBase);
+	image_reloc(ntHdr, pBase, dll->as.img_ofs);
+	image_import(dll, ntHdr, pBase);
 	
-	dll->mem = pBase;
-	dll->entry = (unsigned)pBase + ntHdr->OptionalHeader.AddressOfEntryPoint;
+	dll->entry = dll->as.img_ofs + ntHdr->OptionalHeader.AddressOfEntryPoint;
 
 	IMAGE_DATA_DIRECTORY *export_data = &ntHdr->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT];
-	IMAGE_EXPORT_DIRECTORY *export_dir = (IMAGE_EXPORT_DIRECTORY *)((char *)pBase + export_data->VirtualAddress);
+	IMAGE_EXPORT_DIRECTORY *export_dir = (IMAGE_EXPORT_DIRECTORY *)(pBase + export_data->VirtualAddress);
 	dll->exports = export_dir;
+
 	for (ULONG i = 0; i < export_dir->NumberOfNames; i++) {
 		unsigned f = ((uint16_t *)((char *)pBase + export_dir->AddressOfNameOrdinals))[i];
 		unsigned addr = ((unsigned *)((char *)pBase + export_dir->AddressOfFunctions))[f];
-		printf("%s %d %x %x\n", (char *)pBase + ((unsigned *)((char *)pBase + export_dir->AddressOfNames))[i], f, addr, (unsigned)pBase + addr);
+		printf("%s %d %x %p\n", (char *)pBase + ((unsigned *)((char *)pBase + export_dir->AddressOfNames))[i], f, addr, pBase + addr);
 	}
 
-	if (!dllfun_call(dll->entry, 3, (unsigned)dll->mem, DLL_PROCESS_ATTACH, 0)) {
-		free(dll->mem);
+	heap_init(dll, dll->as.heap_ofs, dll->as.heap_size);
+
+	if (!dllfun_call(dll, dll->entry, 3, dll->as.img_ofs, DLL_PROCESS_ATTACH, 0)) {
+		free(dll->as.base);
 		free(dll);
 		return NULL;
 	}
@@ -820,115 +1004,251 @@ struct dll *dll_load(const char *filename) {
 	return dll;
 }
 
-void dll_free(struct dll *dll) {
+void dll_free(dll_t *dll) {
 	if (!dll)
 		return;
-	dllfun_call(dll->entry, 3, (unsigned)dll->mem, DLL_PROCESS_DETACH, 0);
+	dllfun_call(dll, dll->entry, 3, dll->as.img_ofs, DLL_PROCESS_DETACH, 0);
 	//free(dll->mem);
 #ifdef WIN32
 	VirtualFree(dll->mem, 0, MEM_RELEASE);
 #else
-	munmap(dll->mem, dll->memsize);
+	free(dll->as.base);
+	//munmap(dll->mem, dll->memsize);
 #endif
-	free(dll);
+	delete dll;
 }
 
-unsigned dll_find(struct dll *dll, const char *name) {
+emu_ptr_t dll_find(dll_t *dll, const char *name) {
 	IMAGE_EXPORT_DIRECTORY *export_dir = dll->exports;
-	char *base = (char *)dll->mem;
-	unsigned *names = (unsigned *)(base + export_dir->AddressOfNames);
+	uint8_t *base = dll->as.base + dll->as.img_ofs;
+	DWORD *names = (DWORD *)(base + export_dir->AddressOfNames);
 	for (ULONG i = 0; i < export_dir->NumberOfNames; i++) {
-		if (strcmp(base + names[i], name) == 0) {
-			unsigned f = ((uint16_t *)(base + export_dir->AddressOfNameOrdinals))[i];
-			unsigned addr = ((unsigned *)(base + export_dir->AddressOfFunctions))[f];
-			return (unsigned)base + addr;
+		if (strcmp((char *)(base + names[i]), name) == 0) {
+			uint16_t idx = ((uint16_t *)(base + export_dir->AddressOfNameOrdinals))[i];
+			DWORD addr = ((unsigned *)(base + export_dir->AddressOfFunctions))[idx];
+			return dll->as.img_ofs + addr;
 		}
 	}
 	return 0;
 }
 
-void osiris_setup(tOSIRISModuleInit *mod) {
+void osiris_setup(dll_t *dll, tOSIRISModuleInit *mod) {
 	memset(mod, 0, sizeof(*mod));
 	mod->game_checksum = 0x87888d9b;
-	mod->mprintf = (mprintf_fp)find_fun("mprintf");
-	mod->File_ReadString = (File_ReadString_fp)find_fun("File_ReadString");
-	mod->File_Open = (File_Open_fp)find_fun("File_Open");
-	mod->File_Close = (File_Close_fp)find_fun("File_Close");
-	mod->File_eof = (File_eof_fp)find_fun("File_eof");
-	mod->Scrpt_FindRoomName  = (Scrpt_FindRoomName_fp)find_fun("Scrpt_FindRoomName");
-	mod->Scrpt_FindSoundName  = (Scrpt_FindRoomName_fp)find_fun("FindName");
-	mod->Scrpt_FindLevelGoalName  = (Scrpt_FindLevelGoalName_fp)find_fun("Scrpt_FindLevelGoalName");
-	mod->Scrpt_FindTextureName  = (Scrpt_FindTextureName_fp)find_fun("Scrpt_FindTextureName");
-	mod->Scrpt_FindPathName  = (Scrpt_FindRoomName_fp)find_fun("FindName");
-	mod->Scrpt_FindTriggerName  = (Scrpt_FindTriggerName_fp)find_fun("Scrpt_FindTriggerName");
-	mod->Scrpt_FindDoorName  = (Scrpt_FindRoomName_fp)find_fun("FindName");
-	mod->Scrpt_FindObjectName  = (Scrpt_FindObjectName_fp)find_fun("Scrpt_FindObjectName");
-	mod->Scrpt_FindMatcenName  = (Scrpt_FindRoomName_fp)find_fun("FindName");
-	mod->Scrpt_GetTriggerFace = (Scrpt_GetTriggerFace_fp)find_fun("Scrpt_GetTriggerFace");
-	mod->Scrpt_GetTriggerRoom = (Scrpt_GetTriggerRoom_fp)find_fun("Scrpt_GetTriggerRoom");
-	mod->Scrpt_CreateTimer = (Scrpt_CreateTimer_fp)find_fun("Scrpt_CreateTimer");
-	mod->Cine_StartCanned = (Cine_StartCanned_fp)find_fun("Cine_StartCanned");
-	mod->MSafe_CallFunction = (MSafe_CallFunction_fp)find_fun("MSafe_CallFunction");
-	mod->MSafe_GetValue = (MSafe_GetValue_fp)find_fun("MSafe_GetValue");
-	mod->MSafe_DoPowerup = (MSafe_DoPowerup_fp)find_fun("MSafe_DoPowerup");
-	mod->Obj_SetCustomAnim = (Obj_SetCustomAnim_fp)find_fun("Obj_SetCustomAnim");
-	mod->Obj_Kill = (Obj_Kill_fp)find_fun("Obj_Kill");
-	mod->LGoal_Value = (LGoal_Value_fp)find_fun("LGoal_Value");
-	mod->Matcen_Value = (Matcen_Value_fp)find_fun("Matcen_Value");
+	#if 0
+	mod->mprintf = (mprintf_fp)find_fun(dll, "mprintf");
+	mod->File_ReadString = (File_ReadString_fp)find_fun(dll, "File_ReadString");
+	mod->File_Open = (File_Open_fp)find_fun(dll, "File_Open");
+	mod->File_Close = (File_Close_fp)find_fun(dll, "File_Close");
+	mod->File_eof = (File_eof_fp)find_fun(dll, "File_eof");
+	mod->Scrpt_FindRoomName  = (Scrpt_FindRoomName_fp)find_fun(dll, "Scrpt_FindRoomName");
+	mod->Scrpt_FindSoundName  = (Scrpt_FindRoomName_fp)find_fun(dll, "FindName");
+	mod->Scrpt_FindLevelGoalName  = (Scrpt_FindLevelGoalName_fp)find_fun(dll, "Scrpt_FindLevelGoalName");
+	mod->Scrpt_FindTextureName  = (Scrpt_FindTextureName_fp)find_fun(dll, "Scrpt_FindTextureName");
+	mod->Scrpt_FindPathName  = (Scrpt_FindRoomName_fp)find_fun(dll, "FindName");
+	mod->Scrpt_FindTriggerName  = (Scrpt_FindTriggerName_fp)find_fun(dll, "Scrpt_FindTriggerName");
+	mod->Scrpt_FindDoorName  = (Scrpt_FindRoomName_fp)find_fun(dll, "FindName");
+	mod->Scrpt_FindObjectName  = (Scrpt_FindObjectName_fp)find_fun(dll, "Scrpt_FindObjectName");
+	mod->Scrpt_FindMatcenName  = (Scrpt_FindRoomName_fp)find_fun(dll, "FindName");
+	mod->Scrpt_GetTriggerFace = (Scrpt_GetTriggerFace_fp)find_fun(dll, "Scrpt_GetTriggerFace");
+	mod->Scrpt_GetTriggerRoom = (Scrpt_GetTriggerRoom_fp)find_fun(dll, "Scrpt_GetTriggerRoom");
+	mod->Scrpt_CreateTimer = (Scrpt_CreateTimer_fp)find_fun(dll, "Scrpt_CreateTimer");
+	mod->Cine_StartCanned = (Cine_StartCanned_fp)find_fun(dll, "Cine_StartCanned");
+	mod->MSafe_CallFunction = (MSafe_CallFunction_fp)find_fun(dll, "MSafe_CallFunction");
+	mod->MSafe_GetValue = (MSafe_GetValue_fp)find_fun(dll, "MSafe_GetValue");
+	mod->MSafe_DoPowerup = (MSafe_DoPowerup_fp)find_fun(dll, "MSafe_DoPowerup");
+	mod->Obj_SetCustomAnim = (Obj_SetCustomAnim_fp)find_fun(dll, "Obj_SetCustomAnim");
+	mod->Obj_Kill = (Obj_Kill_fp)find_fun(dll, "Obj_Kill");
+	mod->LGoal_Value = (LGoal_Value_fp)find_fun(dll, "LGoal_Value");
+	mod->Matcen_Value = (Matcen_Value_fp)find_fun(dll, "Matcen_Value");
+	#endif
+	int i = 0;
+	mod->fp[i++] = find_fun(dll, "MonoPrintf");
+	mod->fp[i++] = find_fun(dll, "msafe_CallFunction");
+	mod->fp[i++] = find_fun(dll, "msafe_GetValue");
+	mod->fp[i++] = find_fun(dll, "osipf_CallObjectEvent");
+	mod->fp[i++] = find_fun(dll, "osipf_CallTriggerEvent");
+	mod->fp[i++] = find_fun(dll, "osipf_SoundTouch");
+	mod->fp[i++] = find_fun(dll, "osipf_ObjectFindID");
+	mod->fp[i++] = find_fun(dll, "osipf_WeaponFindID");
+	mod->fp[i++] = find_fun(dll, "osipf_ObjectGetTimeLived");
+	mod->fp[i++] = find_fun(dll, "osipf_GetGunPos");
+	mod->fp[i++] = find_fun(dll, "osipf_RoomValue");
+	mod->fp[i++] = find_fun(dll, "osipf_IsRoomValid");
+	mod->fp[i++] = find_fun(dll, "osipf_GetAttachParent");
+	mod->fp[i++] = find_fun(dll, "osipf_GetNumAttachSlots");
+	mod->fp[i++] = find_fun(dll, "osipf_GetAttachChildHandle");
+	mod->fp[i++] = find_fun(dll, "osipf_AttachObjectAP");
+	mod->fp[i++] = find_fun(dll, "osipf_AttachObjectRad");
+	mod->fp[i++] = find_fun(dll, "osipf_UnattachFromParent");
+	mod->fp[i++] = find_fun(dll, "osipf_UnattachChild");
+	mod->fp[i++] = find_fun(dll, "osipf_UnattachChildren");
+	mod->fp[i++] = find_fun(dll, "osipf_RayCast");
+	mod->fp[i++] = find_fun(dll, "osipf_AIGetPathID");
+	mod->fp[i++] = find_fun(dll, "osipf_AIGoalFollowPathSimple");
+	mod->fp[i++] = find_fun(dll, "osipf_AIPowerSwitch");
+	mod->fp[i++] = find_fun(dll, "osipf_AITurnTowardsVectors");
+	mod->fp[i++] = find_fun(dll, "osipf_AISetType");
+	mod->fp[i++] = find_fun(dll, "osipf_AIFindHidePos");
+	mod->fp[i++] = find_fun(dll, "osipf_AIGoalAddEnabler");
+	mod->fp[i++] = find_fun(dll, "osipf_AIGoalAdd");
+	mod->fp[i++] = find_fun(dll, "osipf_AIGoalClear");
+	mod->fp[i++] = find_fun(dll, "osipf_AIValue");
+	mod->fp[i++] = find_fun(dll, "osipf_AIFindObjOfType");
+	mod->fp[i++] = find_fun(dll, "osipf_AIGetRoomPathPoint");
+	mod->fp[i++] = find_fun(dll, "osipf_AIFindEnergyCenter");
+	mod->fp[i++] = find_fun(dll, "osipf_AIGetDistToObj");
+	mod->fp[i++] = find_fun(dll, "osipf_AISetGoalFlags");
+	mod->fp[i++] = find_fun(dll, "osipf_AISetGoalCircleDist");
+	mod->fp[i++] = find_fun(dll, "osipf_CFReadBytes");
+	mod->fp[i++] = find_fun(dll, "osipf_CFReadInt");
+	mod->fp[i++] = find_fun(dll, "osipf_CFReadShort");
+	mod->fp[i++] = find_fun(dll, "osipf_CFReadByte");
+	mod->fp[i++] = find_fun(dll, "osipf_CFReadFloat");
+	mod->fp[i++] = find_fun(dll, "osipf_CFReadDouble");
+	mod->fp[i++] = find_fun(dll, "osipf_CFReadString");
+	mod->fp[i++] = find_fun(dll, "osipf_CFWriteBytes");
+	mod->fp[i++] = find_fun(dll, "osipf_CFWriteString");
+	mod->fp[i++] = find_fun(dll, "osipf_CFWriteInt");
+	mod->fp[i++] = find_fun(dll, "osipf_CFWriteShort");
+	mod->fp[i++] = find_fun(dll, "osipf_CFWriteByte");
+	mod->fp[i++] = find_fun(dll, "osipf_CFWriteFloat");
+	mod->fp[i++] = find_fun(dll, "osipf_CFWriteDouble");
+	mod->fp[i++] = find_fun(dll, "Osiris_AllocateMemory");
+	mod->fp[i++] = find_fun(dll, "Osiris_FreeMemory");
+	mod->fp[i++] = find_fun(dll, "Osiris_CancelTimer");
+	mod->fp[i++] = find_fun(dll, "Osiris_CreateTimer");
+	mod->fp[i++] = find_fun(dll, "msafe_DoPowerup");
+	mod->fp[i++] = find_fun(dll, "osipf_ObjCreate");
+	mod->fp[i++] = find_fun(dll, "osipf_GameTime");
+	mod->fp[i++] = find_fun(dll, "osipf_FrameTime");
+	mod->fp[i++] = find_fun(dll, "osipf_ObjWBValue");
+	mod->fp[i++] = find_fun(dll, "Osiris_TimerExists");
+	mod->fp[i++] = find_fun(dll, "osipf_ObjectValue");
+	mod->fp[i++] = find_fun(dll, "osipf_MatcenValue");
+	mod->fp[i++] = find_fun(dll, "osipf_MatcenReset");
+	mod->fp[i++] = find_fun(dll, "osipf_MatcenCopy");
+	mod->fp[i++] = find_fun(dll, "osipf_MatcenCreate");
+	mod->fp[i++] = find_fun(dll, "osipf_MatcenFindId");
+	mod->fp[i++] = find_fun(dll, "osipf_MissionFlagSet");
+	mod->fp[i++] = find_fun(dll, "osipf_MissionFlagGet");
+	mod->fp[i++] = find_fun(dll, "osipf_PlayerValue");
+	mod->fp[i++] = find_fun(dll, "osipf_ObjectCustomAnim");
+	mod->fp[i++] = find_fun(dll, "osipf_PlayerAddHudMessage");
+	mod->fp[i++] = find_fun(dll, "osipf_ObjGhost");
+	mod->fp[i++] = find_fun(dll, "osipf_ObjBurning");
+	mod->fp[i++] = find_fun(dll, "osipf_ObjIsEffect");
+	mod->fp[i++] = find_fun(dll, "osipf_CFopen");
+	mod->fp[i++] = find_fun(dll, "osipf_CFclose");
+	mod->fp[i++] = find_fun(dll, "osipf_CFtell");
+	mod->fp[i++] = find_fun(dll, "osipf_CFeof");
+	mod->fp[i++] = find_fun(dll, "osipf_SoundStop");
+	mod->fp[i++] = find_fun(dll, "osipf_SoundPlay2d");
+	mod->fp[i++] = find_fun(dll, "osipf_SoundPlay3d");
+	mod->fp[i++] = find_fun(dll, "osipf_SoundFindId");
+	mod->fp[i++] = find_fun(dll, "osipf_AIIsObjFriend");
+	mod->fp[i++] = find_fun(dll, "osipf_AIIsObjEnemy");
+	mod->fp[i++] = find_fun(dll, "osipf_AIGoalValue");
+	mod->fp[i++] = find_fun(dll, "osipf_AIGetNearbyObjs");
+	mod->fp[i++] = find_fun(dll, "osipf_AIGetCurGoalIndex");
+	mod->fp[i++] = find_fun(dll, "Osiris_OMMS_Malloc");
+	mod->fp[i++] = find_fun(dll, "Osiris_OMMS_Attach");
+	mod->fp[i++] = find_fun(dll, "Osiris_OMMS_Detach");
+	mod->fp[i++] = find_fun(dll, "Osiris_OMMS_Free");
+	mod->fp[i++] = find_fun(dll, "Osiris_OMMS_Find");
+	mod->fp[i++] = find_fun(dll, "Osiris_OMMS_GetInfo");
+	mod->fp[i++] = find_fun(dll, "Cinematic_Start");
+	mod->fp[i++] = find_fun(dll, "Cinematic_Stop");
+	mod->fp[i++] = find_fun(dll, "osipf_FindSoundName");
+	mod->fp[i++] = find_fun(dll, "osipf_FindRoomName");
+	mod->fp[i++] = find_fun(dll, "osipf_FindTriggerName");
+	mod->fp[i++] = find_fun(dll, "osipf_FindObjectName");
+	mod->fp[i++] = find_fun(dll, "osipf_GetTriggerRoom");
+	mod->fp[i++] = find_fun(dll, "osipf_GetTriggerFace");
+	mod->fp[i++] = find_fun(dll, "osipf_FindDoorName");
+	mod->fp[i++] = find_fun(dll, "osipf_FindTextureName");
+	mod->fp[i++] = find_fun(dll, "osipf_CreateRandomSparks");
+	mod->fp[i++] = find_fun(dll, "Osiris_CancelTimerID");
+	mod->fp[i++] = find_fun(dll, "osipf_GetGroundPos");
+	mod->fp[i++] = find_fun(dll, "osipf_EnableShip");
+	mod->fp[i++] = find_fun(dll, "osipf_IsShipEnabled");
+	mod->fp[i++] = find_fun(dll, "osipf_PathGetInformation");
+	mod->fp[i++] = find_fun(dll, "Cinematic_StartCannedScript");
+	mod->fp[i++] = find_fun(dll, "osipf_FindMatcenName");
+	mod->fp[i++] = find_fun(dll, "osipf_FindPathName");
+	mod->fp[i++] = find_fun(dll, "osipf_FindLevelGoalName");
+	mod->fp[i++] = find_fun(dll, "osipf_ObjectFindType");
+	mod->fp[i++] = find_fun(dll, "osipf_LGoalValue");
+	mod->fp[i++] = find_fun(dll, "osipf_ObjMakeListOfType");
+	mod->fp[i++] = find_fun(dll, "osipf_ObjKill");
+	mod->fp[i++] = find_fun(dll, "osipf_AIIsDestReachable");
+	mod->fp[i++] = find_fun(dll, "osipf_AIIsObjReachable");
+	mod->fp[i++] = find_fun(dll, "osipf_GameGetDiffLevel");
+	mod->fp[i++] = find_fun(dll, "osipf_GetLanguageSetting");
+	mod->fp[i++] = find_fun(dll, "osipf_PathValue");
+}
+
+unsigned dll_push(dll_t *dll, const void *mem, int size) {
+	dll->as.stack_ofs -= size;
+	if (mem)
+		memcpy(dll->as.base + dll->as.stack_ofs, mem, size);
+	return dll->as.stack_ofs;
+}
+
+void dll_pop(dll_t *dll, int size) {
+	dll->as.stack_ofs += size;
+}
+
+unsigned dll_get32(dll_t *dll, unsigned vmp) {
+	return *(unsigned *)(dll->as.base + vmp);
+}
+
+void dll_get(dll_t *dll, unsigned vmp, void *buf, int size) {
+	memcpy(buf, dll->as.base + vmp, size);
 }
 
 #ifdef TEST
-unsigned emucall4(x86emu_t *emu, unsigned ip, unsigned a, unsigned b, unsigned c, unsigned d) {
+unsigned emucall4(dll_t *dll, x86emu_t *emu, unsigned ip, unsigned a, unsigned b, unsigned c, unsigned d) {
 	Push32(emu, d);
 	Push32(emu, c);
 	Push32(emu, b);
 	Push32(emu, a);
-	return emucall(emu, ip);
+	return emucall(dll, emu, ip);
 }
-
-unsigned emucall3(x86emu_t *emu, unsigned ip, unsigned a, unsigned b, unsigned c) {
-	Push32(emu, c);
-	Push32(emu, b);
-	Push32(emu, a);
-	return emucall(emu, ip);
-}
-
-unsigned emucall2(x86emu_t *emu, unsigned ip, unsigned a, unsigned b) {
-	Push32(emu, b);
-	Push32(emu, a);
-	return emucall(emu, ip);
-}
-
-unsigned emucall1(x86emu_t *emu, unsigned ip, unsigned a) {
-	Push32(emu, a);
-	return emucall(emu, ip);
-}
-
 
 //typedef unsigned char bool;
 
 int main() {
 	dll_init();
 
-	struct dll *dll = dll_load("level1.dll");
+	dll_t *dll = dll_load("level1.dll");
+
+	if (!dll) {
+		fprintf(stderr, "loading dll failed\n");
+		return EXIT_FAILURE;
+	}
 
 	unsigned f = dll_find(dll, "_InitializeDLL@4");
 	printf("f %x\n", f);
 	tOSIRISModuleInit mod;
-	emucall1(emu, f, (unsigned)&mod);
+	osiris_setup(dll, &mod);
+	dllfun_call(dll, f, 1, dll_push(dll, &mod, sizeof(mod)));
+	dll_pop(dll, sizeof(mod));
 
 	printf("creating instance\n");
-	unsigned inst = emucall1(emu, dll_find(dll, "_CreateInstance@4"), 0);
+	unsigned inst = dllfun_call(dll, dll_find(dll, "_CreateInstance@4"), 1, 0);
 
 	printf("call instance\n");
 	tOSIRISEventInfo info;
 	
-	emucall4(emu, dll_find(dll, "_CallInstanceEvent@16"), 0, inst, EVT_LEVELSTART, (unsigned)&info);
+	dllfun_call(dll, dll_find(dll, "_CallInstanceEvent@16"),
+		4, 0, inst, EVT_LEVELSTART, dll_push(dll, &info, sizeof(info)));
+	dll_pop(dll, sizeof(info));
 
 	//printf("destroying instance %x\n", inst);
 	//emucall2(emu, dll_find(dll, "_DestroyInstance@8"), 0, inst);
 
-	emucall(emu, dll_find(dll, "_ShutdownDLL@0"));
+	dllfun_call(dll, dll_find(dll, "_ShutdownDLL@0"), 0);
 
 	dll_free(dll);
 

@@ -5,7 +5,10 @@
 DEF = -Ilib -DLINUX -D__LINUX__ -I. -DMEM_USE_RTL -DSTATIC_OPENGL -DNEWEDITORSRC -DMONO
 #DEF += -DNED_PHYSICS
 DEF += -I../gl4es/include  -Idllload/emu/include -Idllload
-CXXFLAGS += -m32 -fno-pic -fcf-protection=none -fwrapv
+#CXXFLAGS = -fno-pic
+CXXFLAGS = -fcf-protection=none -fwrapv
+CXXFLAGS += -Werror=int-to-pointer-cast -Werror=pointer-to-int-cast
+CXXFLAGS += -m32 -msse2
 LDFLAGS += -m32
 CXXFLAGS += -I/usr/include/SDL2 
 CXXFLAGS += -Wall -Wno-unknown-pragmas -Wno-unused-variable -g  -Wno-multichar -Wno-write-strings $(DEF)

@@ -721,6 +721,7 @@ OSIRISEXTERN Path_Value_fp dPath_Value;
 // ===========================================================
 
 typedef struct{
+	#if 0
 	mprintf_fp mprintf;
 	MSafe_CallFunction_fp MSafe_CallFunction;
 	MSafe_GetValue_fp MSafe_GetValue;
@@ -845,7 +846,10 @@ typedef struct{
 	Game_GetLanguage_fp Game_GetLanguage;
 	Path_Value_fp Path_Value;
 	int *restfp[MAX_MODULEFUNCS-123];
-	char **string_table;
+	#else
+	uint32_t fp[MAX_MODULEFUNCS];
+	#endif
+	uint32_t string_table;
 	int string_count;
 	int module_identifier;
 	
@@ -854,7 +858,7 @@ typedef struct{
 													// count is 0....only when the level ends.
 													// this is for Game modules ONLY.
 	
-	char *script_identifier;						// Contains a unique script identifier (string), which
+	uint32_t script_identifier;						// Contains a unique script identifier (string), which
 													// can be used for the OMMS system. While this pointer
 													// will always be valid during the lifetime of the module
 													// DO NOT ALTER THE STRING IT POINTS TO.

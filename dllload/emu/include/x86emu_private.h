@@ -84,6 +84,9 @@ typedef struct x86emu_s {
 
     int         type;       // EMUTYPE_xxx define
 
+
+    uint8_t     *base;
+
 } x86emu_t;
 
 #define EMUTYPE_NONE    0

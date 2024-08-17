@@ -3,11 +3,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#if 0
+#ifndef WIN32
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <sys/time.h>
 #include <sys/mman.h>
+#include <time.h>
 #endif
 #ifdef WIN32
 #include <windows.h>

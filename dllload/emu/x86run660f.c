@@ -1744,7 +1744,7 @@ void Run660F(x86emu_t *emu)
     case 0xF7:  /* MASKMOVDQU Gx, Ex */
         nextop = F8;
         GET_EX;
-        opx2 = (sse_regs_t *)(R_EDI);
+        opx2 = (sse_regs_t *)(BASE+R_EDI);
         for (int i=0; i<16; ++i) {
             if(EX->ub[i]&0x80)
                 opx2->ub[i] = GX.ub[i];

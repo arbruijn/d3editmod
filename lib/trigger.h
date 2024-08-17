@@ -38,7 +38,7 @@
 
 typedef struct{
 	int script_id;
-	void *script_instance;
+	unsigned script_instance;
 }tOSIRISTriggerScript;
 
 #define TRIG_NAME_LEN	19

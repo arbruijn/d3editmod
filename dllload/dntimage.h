@@ -49,7 +49,7 @@
 //
 // DOS Image Header Format
 //
-#include <pshpack2.h>
+#include <dpshpack2.h>
 typedef struct _IMAGE_DOS_HEADER {
     USHORT e_magic;
     USHORT e_cblp;
@@ -71,13 +71,13 @@ typedef struct _IMAGE_DOS_HEADER {
     USHORT e_res2[10];
     LONG e_lfanew;
 } IMAGE_DOS_HEADER, *PIMAGE_DOS_HEADER;
-#include <poppack.h>
+#include <dpoppack.h>
 
 
 //
 // Export/Import Format
 //
-#include <pshpack4.h>
+#include <dpshpack4.h>
 typedef struct _IMAGE_EXPORT_DIRECTORY {
     ULONG Characteristics;
     ULONG TimeDateStamp;
@@ -472,7 +472,7 @@ typedef struct _IMAGE_IMPORT_BY_NAME {
     UCHAR   Name[1];
 } IMAGE_IMPORT_BY_NAME, *PIMAGE_IMPORT_BY_NAME;
 
-#include <pshpack8.h>
+#include <dpshpack8.h>
 typedef struct _IMAGE_THUNK_DATA64 {
     union {
         ULONGLONG ForwarderString;
@@ -481,7 +481,7 @@ typedef struct _IMAGE_THUNK_DATA64 {
         ULONGLONG AddressOfData;
     } u1;
 } IMAGE_THUNK_DATA64, *PIMAGE_THUNK_DATA64;
-#include <poppack.h>
+#include <dpoppack.h>
 
 typedef struct _IMAGE_THUNK_DATA32 {
     union {
@@ -560,7 +560,7 @@ typedef struct _IMAGE_IMPORT_DESCRIPTOR {
     ULONG   FirstThunk;
 } IMAGE_IMPORT_DESCRIPTOR, *PIMAGE_IMPORT_DESCRIPTOR;
 
-#include <poppack.h>
+#include <dpoppack.h>
 
 #endif
 

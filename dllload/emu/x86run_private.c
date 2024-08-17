@@ -759,13 +759,13 @@ void UpdateFlags(x86emu_t *emu)
             break;
 
         case d_unknown:
-            printf_log(LOG_NONE, "Box86: %p trying to evaluate Unknown defered Flags\n", (void*)R_EIP);
+            printf_log(LOG_NONE, "Box86: %x trying to evaluate Unknown defered Flags\n", R_EIP);
             break;
     }
     RESET_FLAGS(emu);
 }
 
-uintptr_t GetSegmentBaseEmu(x86emu_t* emu, int seg)
+uint32_t GetSegmentBaseEmu(x86emu_t* emu, int seg)
 {
     if(emu->segs_serial[seg] != emu->context->sel_serial) {
         emu->segs_offs[seg] = (uintptr_t)GetSegmentBase(emu->segs[seg]);

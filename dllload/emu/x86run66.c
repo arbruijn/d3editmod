@@ -17,13 +17,13 @@
 #endif
 
 
-#define F8      *(uint8_t*)(ip++)
-#define F8S     *(int8_t*)(ip++)
-#define F16     *(uint16_t*)(ip+=2, ip-2)
-#define F16S    *(int16_t*)(ip+=2, ip-2)
-#define F32     *(uint32_t*)(ip+=4, ip-4)
-#define F32S    *(int32_t*)(ip+=4, ip-4)
-#define PK(a)   *(uint8_t*)(ip+a)
+#define F8      *(uint8_t*)(BASE+ip++)
+#define F8S     *(int8_t*)(BASE+ip++)
+#define F16     *(uint16_t*)(BASE+(ip+=2, ip-2))
+#define F16S    *(int16_t*)(BASE+(ip+=2, ip-2))
+#define F32     *(uint32_t*)(BASE+(ip+=4, ip-4))
+#define F32S    *(int32_t*)(BASE+(ip+=4, ip-4))
+#define PK(a)   *(uint8_t*)(BASE+ip+a)
 
 #include "modrm.h"
 
@@ -56,7 +56,7 @@ void Run67(x86emu_t *emu)
     int8_t tmp8s;
     int32_t tmp32s;
     uint32_t tmp32u;
-    uintptr_t tlsdata;
+    uint32_t tlsdata;
     reg32_t *oped;
     uint8_t nextop;
     switch(opcode) {
@@ -85,11 +85,11 @@ void Run67(x86emu_t *emu)
 
             case 0xA1:                              /* MOV EAX,Ov16 */
                 tmp32u = F16;
-                R_EAX = *(uint32_t*)(tlsdata + tmp32u);
+                R_EAX = *(uint32_t*)(BASE + tlsdata + tmp32u);
                 break;
             case 0xA3:                              /* MOV Ov16,EAX */
                 tmp32u = F16;
-                *(uint32_t*)(tlsdata + tmp32u) = R_EAX;
+                *(uint32_t*)(BASE + tlsdata + tmp32u) = R_EAX;
                 break;
             case 0xFF:                              /* GRP 5 Ed */
                 nextop = F8;
@@ -114,7 +114,7 @@ void Run67(x86emu_t *emu)
         return;
 
     case 0x6C:                      /* INSB */
-        *(int8_t*)(R_DI+GetESBaseEmu(emu)) = 0;         // faking port read, using actual segment ES, just in case
+        *(int8_t*)(BASE+R_DI+GetESBaseEmu(emu)) = 0;         // faking port read, using actual segment ES, just in case
         if(ACCESS_FLAG(F_DF))
             R_DI-=1;
         else
@@ -122,7 +122,7 @@ void Run67(x86emu_t *emu)
         break;
 
     case 0xAC:                      /* LODSB */
-        R_AL = *(int8_t*)(R_SI+GetDSBaseEmu(emu));
+        R_AL = *(int8_t*)(BASE+R_SI+GetDSBaseEmu(emu));
         if(ACCESS_FLAG(F_DF))
             R_SI-=1;
         else
@@ -883,7 +883,7 @@ void RunGS(x86emu_t *emu)
     uint8_t tmp8u;
     uint32_t tmp32u;
     int32_t tmp32s;
-    uintptr_t tlsdata = GetGSBaseEmu(emu);
+    uint32_t tlsdata = GetGSBaseEmu(emu);
     switch(opcode) {
         case 0x01:              /* ADD GS:Ed, Gd */
             nextop = F8;
@@ -1078,15 +1078,15 @@ void RunGS(x86emu_t *emu)
             break;
         case 0xA1:              /* MOV EAX,Ov */
             tmp32s = F32S;
-            R_EAX = *(uint32_t*)((tlsdata) + tmp32s);
+            R_EAX = *(uint32_t*)((BASE + tlsdata) + tmp32s);
             break;
         case 0xA2:              /* MOV Ob,AL */
             tmp32s = F32S;
-            *(uint8_t*)((tlsdata) + tmp32s) = R_AL;
+            *(uint8_t*)((BASE + tlsdata) + tmp32s) = R_AL;
             break;
         case 0xA3:             /* MOV Od,EAX */
             tmp32s = F32S;
-            *(uint32_t*)((tlsdata) + tmp32s) = R_EAX;
+            *(uint32_t*)((BASE + tlsdata) + tmp32s) = R_EAX;
             break;
 
         case 0xC0:             /* GRP2 Eb,Ib */
@@ -1165,7 +1165,7 @@ void RunGS(x86emu_t *emu)
                     ED->dword[0] = dec32(emu, ED->dword[0]);
                     break;
                 case 2:                 /* CALL NEAR Ed */
-                    R_EIP = (uintptr_t)getAlternate((void*)ED->dword[0]);
+                    R_EIP = (emu_ptr_t)getAlternate(ED->dword[0]);
                     Push(emu, ip);
                     ip = R_EIP;
                     break;
@@ -1182,7 +1182,7 @@ void RunGS(x86emu_t *emu)
                     }
                     break;
                 case 4:                 /* JMP NEAR Ed */
-                    ip = (uintptr_t)getAlternate((void*)ED->dword[0]);
+                    ip = (emu_ptr_t)getAlternate(ED->dword[0]);
                     break;
                 case 5:                 /* JMP FAR Ed */
                     if(nextop>0xc0) {
@@ -1219,7 +1219,7 @@ void RunFS(x86emu_t *emu)
     uint8_t tmp8u;
     uint32_t tmp32u;
     int32_t tmp32s;
-    uintptr_t tlsdata = GetFSBaseEmu(emu);
+    uint32_t tlsdata = GetFSBaseEmu(emu);
     switch(opcode) {
         case 0x01:              /* ADD FS:Ed, Gd */
             nextop = F8;
@@ -1313,11 +1313,11 @@ void RunFS(x86emu_t *emu)
 
                 case 0xA1:                              /* MOV EAX,Ov16 */
                     tmp32u = F16;
-                    R_EAX = *(uint32_t*)(tlsdata + tmp32u);
+                    R_EAX = *(uint32_t*)((BASE + tlsdata) + tmp32u);
                     break;
                 case 0xA3:                              /* MOV Ov16,EAX */
                     tmp32u = F16;
-                    *(uint32_t*)(tlsdata + tmp32u) = R_EAX;
+                    *(uint32_t*)((BASE + tlsdata) + tmp32u) = R_EAX;
                     break;
                 case 0xFF:                              /* GRP 5 Ed */
                     nextop = F8;
@@ -1414,19 +1414,19 @@ void RunFS(x86emu_t *emu)
 
         case 0xA0:              /* MOV AL,Ob */
             tmp32s = F32S;
-            R_AL = *(uint8_t*)((tlsdata) + tmp32s);
+            R_AL = *(uint8_t*)((BASE + tlsdata) + tmp32s);
             break;
         case 0xA1:              /* MOV EAX,Ov */
             tmp32s = F32S;
-            R_EAX = *(uint32_t*)((tlsdata) + tmp32s);
+            R_EAX = *(uint32_t*)((BASE + tlsdata) + tmp32s);
             break;
         case 0xA2:              /* MOV Ob,AL */
             tmp32s = F32S;
-            *(uint8_t*)((tlsdata) + tmp32s) = R_AL;
+            *(uint8_t*)((BASE + tlsdata) + tmp32s) = R_AL;
             break;
         case 0xA3:             /* MOV Od,EAX */
             tmp32s = F32S;
-            *(uint32_t*)((tlsdata) + tmp32s) = R_EAX;
+            *(uint32_t*)((BASE + tlsdata) + tmp32s) = R_EAX;
             break;
 
         case 0xC0:             /* GRP2 Eb,Ib */
@@ -1472,7 +1472,7 @@ void RunFS(x86emu_t *emu)
                     ED->dword[0] = dec32(emu, ED->dword[0]);
                     break;
                 case 2:                 /* CALL NEAR Ed */
-                    R_EIP = (uintptr_t)getAlternate((void*)ED->dword[0]);
+                    R_EIP = (emu_ptr_t)getAlternate(ED->dword[0]);
                     Push(emu, ip);
                     ip = R_EIP;
                     break;
@@ -1489,7 +1489,7 @@ void RunFS(x86emu_t *emu)
                     }
                     break;
                 case 4:                 /* JMP NEAR Ed */
-                    ip = (uintptr_t)getAlternate((void*)ED->dword[0]);
+                    ip = (emu_ptr_t)getAlternate(ED->dword[0]);
                     break;
                 case 5:                 /* JMP FAR Ed */
                     if(nextop>0xc0) {
@@ -1519,7 +1519,7 @@ void RunFS(x86emu_t *emu)
     R_EIP = ip;
 }
 
-void RunFS66(x86emu_t *emu, uintptr_t tlsdata)
+void RunFS66(x86emu_t *emu, uint32_t tlsdata)
 {
     uintptr_t ip = R_EIP+2;
     uint8_t opcode = F8;
@@ -1544,7 +1544,7 @@ void RunFS66(x86emu_t *emu, uintptr_t tlsdata)
     R_EIP = ip;
 }
 
-void RunGS0F(x86emu_t *emu, uintptr_t tlsdata)
+void RunGS0F(x86emu_t *emu, uint32_t tlsdata)
 {
     uintptr_t ip = R_EIP+2;
     uint8_t opcode = F8;

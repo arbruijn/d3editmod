@@ -6,7 +6,10 @@
 #include <string.h>
 #include <signal.h>
 #include <sys/types.h>
+#ifndef WIN32
 //#include <unistd.h>
+#include <sched.h>
+#endif
 
 #include "emudebug.h"
 #include "box86stack.h"
@@ -47,7 +50,7 @@ int Run(x86emu_t *emu, int step)
     int32_t tmp32s, tmp32s2;
     uint64_t tmp64u;
     int64_t tmp64s;
-    uintptr_t ip;
+    emu_ptr_t ip;
     double d;
     float f;
     int64_t ll;
@@ -61,13 +64,13 @@ int Run(x86emu_t *emu, int step)
         return 0;
 
     //ref opcode: http://ref.x86asm.net/geek32.html#xA1
-    printf_log(LOG_DEBUG, "Run X86 (%p), EIP=%p, Stack=%p\n", emu, (void*)R_EIP, (void*)R_ESP);
-#define F8      *(uint8_t*)(ip++)
-#define F8S     *(int8_t*)(ip++)
-#define F16     *(uint16_t*)(ip+=2, ip-2)
-#define F32     *(uint32_t*)(ip+=4, ip-4)
-#define F32S    *(int32_t*)(ip+=4, ip-4)
-#define PK(a)   *(uint8_t*)(ip+a)
+    printf_log(LOG_DEBUG, "Run X86 (%p), EIP=%x, Stack=%x\n", emu, R_EIP, R_ESP);
+#define F8      *(uint8_t*)(BASE + ip++)
+#define F8S     *(int8_t*)(BASE + ip++)
+#define F16     *(uint16_t*)(BASE + (ip+=2, ip-2))
+#define F32     *(uint32_t*)(BASE + (ip+=4, ip-4))
+#define F32S    *(int32_t*)(BASE + (ip+=4, ip-4))
+#define PK(a)   *(uint8_t*)(BASE + (ip+a))
 #ifdef DYNAREC
 #define STEP if(step) goto stepout;
 #else
@@ -295,7 +298,7 @@ x86emurun:
     ip = R_EIP;
 #ifdef HAVE_TRACE
 _trace:
-    __builtin_prefetch((void*)ip, 0, 0); 
+    __builtin_prefetch(BASE+ip, 0, 0);
     emu->prev2_ip = emu->prev_ip;
     emu->prev_ip = R_EIP;
     R_EIP=ip;
@@ -316,6 +319,8 @@ _trace:
     opcode = F8;
     //goto *baseopcodes[opcode];
 switch_opcode:
+    if (ip<0x10000)
+        abort();
 	switch (opcode) {
 
         #define GO(B, OP)                      \
@@ -568,14 +573,14 @@ switch_opcode:
             GD.dword[0] = imul32(emu, ED->dword[0], (uint32_t)tmp32s);
             NEXT;
         CASE _0x6C:                      /* INSB */
-            *(int8_t*)(R_EDI+GetESBaseEmu(emu)) = 0;   // faking port read, using explicit ES segment
+            *(int8_t*)(BASE+R_EDI+GetESBaseEmu(emu)) = 0;   // faking port read, using explicit ES segment
             if(ACCESS_FLAG(F_DF))
                 R_EDI-=1;
             else
                 R_EDI+=1;
             NEXT;
         CASE _0x6D:                      /* INSD */
-            *(int32_t*)(R_EDI+GetESBaseEmu(emu)) = 0;   // faking port read, using explicit ES segment
+            *(int32_t*)(BASE+R_EDI+GetESBaseEmu(emu)) = 0;   // faking port read, using explicit ES segment
             if(ACCESS_FLAG(F_DF))
                 R_EDI-=4;
             else
@@ -771,7 +776,7 @@ switch_opcode:
                 GD.dword[0] = ED->dword[0];
                 ED->dword[0] = tmp32u;
             } else {
-                if(((uintptr_t)ED)&3)
+                if(((emu_ptr_t)ED)&3)
                 {
                     // not aligned, dont't try to "LOCK"
                     tmp32u = ED->dword[0];
@@ -828,7 +833,7 @@ switch_opcode:
         CASE _0x8D:                      /* LEA Gd,M */
             nextop = F8;
             GET_ED;
-            GD.dword[0] = (uint32_t)ED;
+            GD.dword[0] = (uint32_t)((uint8_t *)ED-BASE);
             NEXT;
         CASE _0x8E:                      /* MOV Seg,Ew */
             nextop = F8;
@@ -896,41 +901,41 @@ switch_opcode:
             NEXT;
 
         CASE _0xA0:                      /* MOV AL,Ob */
-            R_AL = *(uint8_t*)F32;
+            R_AL = *(uint8_t*)(BASE+F32);
             NEXT;
         CASE _0xA1:                      /* MOV EAX,Od */
-            R_EAX = *(uint32_t*)F32;
+            R_EAX = *(uint32_t*)(BASE+F32);
             NEXT;
         CASE _0xA2:                      /* MOV Ob,AL */
-            *(uint8_t*)F32 = R_AL;
+            *(uint8_t*)(BASE+F32) = R_AL;
             NEXT;
         CASE _0xA3:                      /* MOV Od,EAX */
-            *(uint32_t*)F32 = R_EAX;
+            *(uint32_t*)(BASE+F32) = R_EAX;
             NEXT;
         CASE _0xA4:                      /* MOVSB */
             tmp8s = ACCESS_FLAG(F_DF)?-1:+1;
-            *(uint8_t*)R_EDI = *(uint8_t*)R_ESI;
+            *(uint8_t*)(BASE+R_EDI) = *(uint8_t*)(BASE+R_ESI);
             R_EDI += tmp8s;
             R_ESI += tmp8s;
             NEXT;
         CASE _0xA5:                      /* MOVSD */
             tmp8s = ACCESS_FLAG(F_DF)?-4:+4;
-            *(uint32_t*)R_EDI = *(uint32_t*)R_ESI;
+            *(uint32_t*)(BASE+R_EDI) = *(uint32_t*)(BASE+R_ESI);
             R_EDI += tmp8s;
             R_ESI += tmp8s;
             NEXT;
         CASE _0xA6:                      /* CMPSB */
             tmp8s = ACCESS_FLAG(F_DF)?-1:+1;
-            tmp8u  = *(uint8_t*)R_EDI;
-            tmp8u2 = *(uint8_t*)R_ESI;
+            tmp8u  = *(uint8_t*)(BASE+R_EDI);
+            tmp8u2 = *(uint8_t*)(BASE+R_ESI);
             R_EDI += tmp8s;
             R_ESI += tmp8s;
             cmp8(emu, tmp8u2, tmp8u);
             NEXT;
         CASE _0xA7:                      /* CMPSD */
             tmp8s = ACCESS_FLAG(F_DF)?-4:+4;
-            tmp32u  = *(uint32_t*)R_EDI;
-            tmp32u2 = *(uint32_t*)R_ESI;
+            tmp32u  = *(uint32_t*)(BASE+R_EDI);
+            tmp32u2 = *(uint32_t*)(BASE+R_ESI);
             R_EDI += tmp8s;
             R_ESI += tmp8s;
             cmp32(emu, tmp32u2, tmp32u);
@@ -943,32 +948,32 @@ switch_opcode:
             NEXT;
         CASE _0xAA:                      /* STOSB */
             tmp8s = ACCESS_FLAG(F_DF)?-1:+1;
-            *(uint8_t*)R_EDI = R_AL;
+            *(uint8_t*)(BASE+R_EDI) = R_AL;
             R_EDI += tmp8s;
             NEXT;
         CASE _0xAB:                      /* STOSD */
             tmp8s = ACCESS_FLAG(F_DF)?-4:+4;
-            *(uint32_t*)R_EDI = R_EAX;
+            *(uint32_t*)(BASE+R_EDI) = R_EAX;
             R_EDI += tmp8s;
             NEXT;
         CASE _0xAC:                      /* LODSB */
             tmp8s = ACCESS_FLAG(F_DF)?-1:+1;
-            R_AL = *(uint8_t*)R_ESI;
+            R_AL = *(uint8_t*)(BASE+R_ESI);
             R_ESI += tmp8s;
             NEXT;
         CASE _0xAD:                      /* LODSD */
             tmp8s = ACCESS_FLAG(F_DF)?-4:+4;
-            R_EAX = *(uint32_t*)R_ESI;
+            R_EAX = *(uint32_t*)(BASE+R_ESI);
             R_ESI += tmp8s;
             NEXT;
         CASE _0xAE:                      /* SCASB */
             tmp8s = ACCESS_FLAG(F_DF)?-1:+1;
-            cmp8(emu, R_AL, *(uint8_t*)R_EDI);
+            cmp8(emu, R_AL, *(uint8_t*)(BASE+R_EDI));
             R_EDI += tmp8s;
             NEXT;
         CASE _0xAF:                      /* SCASD */
             tmp8s = ACCESS_FLAG(F_DF)?-4:+4;
-            cmp32(emu, R_EAX, *(uint32_t*)R_EDI);
+            cmp32(emu, R_EAX, *(uint32_t*)(BASE+R_EDI));
             R_EDI += tmp8s;
             NEXT;
         
@@ -1026,14 +1031,14 @@ switch_opcode:
             }
             NEXT;
         CASE _0xC2:                      /* RETN Iw */
-            //printf("%08x ret  %08x val %08x\n", ip, *(unsigned *)R_ESP, R_EAX);
+            //printf("%08x ret  %08x val %08x\n", ip, *(unsigned *)(BASE+R_ESP), R_EAX);
             tmp16u = F16;
             ip = Pop(emu);
             R_ESP += tmp16u;
             STEP
             NEXT;
         CASE _0xC3:                      /* RET */
-            //printf("%08x ret  %08x val %08x\n", ip, *(unsigned *)R_ESP, R_EAX);
+            //printf("%08x ret  %08x val %08x\n", ip, *(unsigned *)(BASE+R_ESP), R_EAX);
             ip = Pop(emu);
             STEP
             NEXT;
@@ -1070,7 +1075,7 @@ switch_opcode:
             if (tmp8u) {
                 for (tmp8u2 = 1; tmp8u2 < tmp8u; tmp8u2++) {
                     tmp32u -= 4;
-                    Push(emu, *((uint32_t*)tmp32u));
+                    Push(emu, *((uint32_t*)(BASE+tmp32u)));
                 }
                 Push(emu, R_EBP);
             }
@@ -1105,7 +1110,7 @@ switch_opcode:
                 if(emu->quit) goto fini;
             } else {
                 int tid = GetTID();
-                printf_log(LOG_NONE, "%04d|%p: Ignoring Unsupported Int %02Xh\n", tid, (void*)ip, nextop);
+                printf_log(LOG_NONE, "%04d|%x: Ignoring Unsupported Int %02Xh\n", tid, ip, nextop);
                 emu->old_ip = R_EIP;
                 R_EIP = ip;
                 emu->quit = 1;
@@ -1164,7 +1169,7 @@ switch_opcode:
             R_AL = ACCESS_FLAG(F_CF)?0xFF:0x00;
             NEXT;
         CASE _0xD7:                      /* XLAT */
-            R_AL = *(uint8_t*)(R_EBX + R_AL);
+            R_AL = *(uint8_t*)(BASE + R_EBX + R_AL);
             NEXT;
         
         CASE _0xD8:                      /* x87 */
@@ -1295,7 +1300,7 @@ switch_opcode:
                         tmp8s *= 2;
                         while(tmp32u) {
                             --tmp32u;
-                            *(uint16_t*)R_EDI = *(uint16_t*)R_ESI;
+                            *(uint16_t*)(BASE+R_EDI) = *(uint16_t*)(BASE+R_ESI);
                             R_EDI += tmp8s;
                             R_ESI += tmp8s;
                         }
@@ -1304,7 +1309,7 @@ switch_opcode:
                         tmp8s *= 2;
                         while(tmp32u) {
                             --tmp32u;
-                            *(uint16_t*)R_EDI = R_AX;
+                            *(uint16_t*)(BASE+R_EDI) = R_AX;
                             R_EDI += tmp8s;
                         }
                         break;
@@ -1315,8 +1320,8 @@ switch_opcode:
                         if(opcode==0xF2) {
                             while(tmp32u) {
                                 --tmp32u;
-                                tmp16u2 = *(uint16_t*)R_EDI;
-                                tmp16u  = *(uint16_t*)R_ESI;
+                                tmp16u2 = *(uint16_t*)(BASE+R_EDI);
+                                tmp16u  = *(uint16_t*)(BASE+R_ESI);
                                 R_EDI += tmp8s;
                                 R_ESI += tmp8s;
                                 if(tmp16u2==tmp16u)
@@ -1325,8 +1330,8 @@ switch_opcode:
                         } else {
                             while(tmp32u) {
                                 --tmp32u;
-                                tmp16u2 = *(uint16_t*)R_EDI;
-                                tmp16u  = *(uint16_t*)R_ESI;
+                                tmp16u2 = *(uint16_t*)(BASE+R_EDI);
+                                tmp16u  = *(uint16_t*)(BASE+R_ESI);
                                 R_EDI += tmp8s;
                                 R_ESI += tmp8s;
                                 if(tmp16u2!=tmp16u)
@@ -1341,7 +1346,7 @@ switch_opcode:
                         if(opcode==0xF2) {
                             while(tmp32u) {
                                 --tmp32u;
-                                tmp16u = *(uint16_t*)R_EDI;
+                                tmp16u = *(uint16_t*)(BASE+R_EDI);
                                 R_EDI += tmp8s;
                                 if(R_AX==tmp16u)
                                     break;
@@ -1349,7 +1354,7 @@ switch_opcode:
                         } else {
                             while(tmp32u) {
                                 --tmp32u;
-                                tmp16u = *(uint16_t*)R_EDI;
+                                tmp16u = *(uint16_t*)(BASE+R_EDI);
                                 R_EDI += tmp8s;
                                 if(R_AX!=tmp16u)
                                     break;
@@ -1444,7 +1449,7 @@ switch_opcode:
                     case 0xA4:              /* REP MOVSB */
                         while(tmp32u) {
                             --tmp32u;
-                            *(uint8_t*)R_EDI = *(uint8_t*)R_ESI;
+                            *(uint8_t*)(BASE+R_EDI) = *(uint8_t*)(BASE+R_ESI);
                             R_EDI += tmp8s;
                             R_ESI += tmp8s;
                         }
@@ -1453,7 +1458,7 @@ switch_opcode:
                         tmp8s *= 4;
                         while(tmp32u) {
                             --tmp32u;
-                            *(uint32_t*)R_EDI = *(uint32_t*)R_ESI;
+                            *(uint32_t*)(BASE+R_EDI) = *(uint32_t*)(BASE+R_ESI);
                             R_EDI += tmp8s;
                             R_ESI += tmp8s;
                         }
@@ -1464,8 +1469,8 @@ switch_opcode:
                         if(opcode==0xF2) {
                             while(tmp32u) {
                                 --tmp32u;
-                                tmp8u  = *(uint8_t*)R_EDI;
-                                tmp8u2 = *(uint8_t*)R_ESI;
+                                tmp8u  = *(uint8_t*)(BASE+R_EDI);
+                                tmp8u2 = *(uint8_t*)(BASE+R_ESI);
                                 R_EDI += tmp8s;
                                 R_ESI += tmp8s;
                                 if(tmp8u==tmp8u2)
@@ -1474,8 +1479,8 @@ switch_opcode:
                         } else {
                             while(tmp32u) {
                                 --tmp32u;
-                                tmp8u  = *(uint8_t*)R_EDI;
-                                tmp8u2 = *(uint8_t*)R_ESI;
+                                tmp8u  = *(uint8_t*)(BASE+R_EDI);
+                                tmp8u2 = *(uint8_t*)(BASE+R_ESI);
                                 R_EDI += tmp8s;
                                 R_ESI += tmp8s;
                                 if(tmp8u!=tmp8u2)
@@ -1491,8 +1496,8 @@ switch_opcode:
                         if(opcode==0xF2) {
                             while(tmp32u) {
                                 --tmp32u;
-                                tmp32u3 = *(uint32_t*)R_EDI;
-                                tmp32u2 = *(uint32_t*)R_ESI;
+                                tmp32u3 = *(uint32_t*)(BASE+R_EDI);
+                                tmp32u2 = *(uint32_t*)(BASE+R_ESI);
                                 R_EDI += tmp8s;
                                 R_ESI += tmp8s;
                                 if(tmp32u3==tmp32u2)
@@ -1501,8 +1506,8 @@ switch_opcode:
                         } else {
                             while(tmp32u) {
                                 --tmp32u;
-                                tmp32u3 = *(uint32_t*)R_EDI;
-                                tmp32u2 = *(uint32_t*)R_ESI;
+                                tmp32u3 = *(uint32_t*)(BASE+R_EDI);
+                                tmp32u2 = *(uint32_t*)(BASE+R_ESI);
                                 R_EDI += tmp8s;
                                 R_ESI += tmp8s;
                                 if(tmp32u3!=tmp32u2)
@@ -1514,7 +1519,7 @@ switch_opcode:
                     case 0xAA:              /* REP STOSB */
                         while(tmp32u) {
                             --tmp32u;
-                            *(uint8_t*)R_EDI = R_AL;
+                            *(uint8_t*)(BASE+R_EDI) = R_AL;
                             R_EDI += tmp8s;
                         }
                         break;
@@ -1522,14 +1527,14 @@ switch_opcode:
                         tmp8s *= 4;
                         while(tmp32u) {
                             --tmp32u;
-                            *(uint32_t*)R_EDI = R_EAX;
+                            *(uint32_t*)(BASE+R_EDI) = R_EAX;
                             R_EDI += tmp8s;
                         }
                         break;
                     case 0xAC:              /* REP LODSB */
                         while(tmp32u) {
                             --tmp32u;
-                            R_AL = *(uint8_t*)R_ESI;
+                            R_AL = *(uint8_t*)(BASE+R_ESI);
                             R_ESI += tmp8s;
                         }
                         break;
@@ -1537,7 +1542,7 @@ switch_opcode:
                         tmp8s *= 4;
                         while(tmp32u) {
                             --tmp32u;
-                            R_EAX = *(uint32_t*)R_ESI;
+                            R_EAX = *(uint32_t*)(BASE+R_ESI);
                             R_ESI += tmp8s;
                         }
                         break;
@@ -1546,7 +1551,7 @@ switch_opcode:
                         if(opcode==0xF2) {
                             while(tmp32u) {
                                 --tmp32u;
-                                tmp8u = *(uint8_t*)R_EDI;
+                                tmp8u = *(uint8_t*)(BASE+R_EDI);
                                 R_EDI += tmp8s;
                                 if(R_AL==tmp8u)
                                     break;
@@ -1554,7 +1559,7 @@ switch_opcode:
                         } else {
                             while(tmp32u) {
                                 --tmp32u;
-                                tmp8u = *(uint8_t*)R_EDI;
+                                tmp8u = *(uint8_t*)(BASE+R_EDI);
                                 R_EDI += tmp8s;
                                 if(R_AL!=tmp8u)
                                     break;
@@ -1568,7 +1573,7 @@ switch_opcode:
                         if(opcode==0xF2) {
                             while(tmp32u) {
                                 --tmp32u;
-                                tmp32u2 = *(uint32_t*)R_EDI;
+                                tmp32u2 = *(uint32_t*)(BASE+R_EDI);
                                 R_EDI += tmp8s;
                                 if(R_EAX==tmp32u2)
                                     break;
@@ -1576,7 +1581,7 @@ switch_opcode:
                         } else {
                             while(tmp32u) {
                                 --tmp32u;
-                                tmp32u2 = *(uint32_t*)R_EDI;
+                                tmp32u2 = *(uint32_t*)(BASE+R_EDI);
                                 R_EDI += tmp8s;
                                 if(R_EAX!=tmp32u2)
                                     break;
@@ -1695,7 +1700,7 @@ switch_opcode:
                 default:
                     emu->old_ip = R_EIP;
                     R_EIP = ip = tmp32u2;
-                    printf_log(LOG_NONE, "Illegal Opcode %p: %02X %02X %02X %02X\n", (void*)ip, opcode, nextop, PK(2), PK(3));
+                    printf_log(LOG_NONE, "Illegal Opcode %x: %02X %02X %02X %02X\n", ip, opcode, nextop, PK(2), PK(3));
                     emu->quit=1;
                     emu->error |= ERR_ILLEGAL;
                     goto fini;
@@ -1713,7 +1718,7 @@ switch_opcode:
                     ED->dword[0] = dec32(emu, ED->dword[0]);
                     break;
                 case 2:                 /* CALL NEAR Ed */
-                    tmp32u = (uintptr_t)getAlternate((void*)ED->dword[0]);
+                    tmp32u = (emu_ptr_t)getAlternate(ED->dword[0]);
                     //printf("%08x call %08x\n", ip, tmp32u);
                     Push(emu, ip);
                     ip = tmp32u;
@@ -1723,7 +1728,7 @@ switch_opcode:
                     if(nextop>0xc0) {
                         emu->old_ip = R_EIP;
                         R_EIP = ip = tmp32u2;
-                        printf_log(LOG_NONE, "Illegal Opcode %p: %02X %02X %02X %02X\n", (void*)ip, opcode, nextop, PK(2), PK(3));
+                        printf_log(LOG_NONE, "Illegal Opcode %x: %02X %02X %02X %02X\n", ip, opcode, nextop, PK(2), PK(3));
                         emu->quit=1;
                         emu->error |= ERR_ILLEGAL;
                         goto fini;
@@ -1736,14 +1741,14 @@ switch_opcode:
                     }
                     break;
                 case 4:                 /* JMP NEAR Ed */
-                    ip = (uintptr_t)getAlternate((void*)ED->dword[0]);
+                    ip = (emu_ptr_t)getAlternate(ED->dword[0]);
                     STEP
                     break;
                 case 5:                 /* JMP FAR Ed */
                     if(nextop>0xc0) {
                         emu->old_ip = R_EIP;
                         R_EIP = ip = tmp32u2;
-                        printf_log(LOG_NONE, "Illegal Opcode %p: 0x%02X 0x%02X %02X %02X\n", (void*)ip, opcode, nextop, PK(2), PK(3));
+                        printf_log(LOG_NONE, "Illegal Opcode %x: 0x%02X 0x%02X %02X %02X\n", ip, opcode, nextop, PK(2), PK(3));
                         emu->quit=1;
                         emu->error |= ERR_ILLEGAL;
                         goto fini;
@@ -1760,7 +1765,7 @@ switch_opcode:
                 default:
                     emu->old_ip = R_EIP;
                     R_EIP = ip = tmp32u2;
-                    printf_log(LOG_NONE, "Illegal Opcode %p: %02X %02X %02X %02X %02X %02X\n",(void*)ip, opcode, nextop, PK(2), PK(3), PK(4), PK(5));
+                    printf_log(LOG_NONE, "Illegal Opcode %x: %02X %02X %02X %02X %02X %02X\n",ip, opcode, nextop, PK(2), PK(3), PK(4), PK(5));
                     emu->quit=1;
                     emu->error |= ERR_ILLEGAL;
                     goto fini;

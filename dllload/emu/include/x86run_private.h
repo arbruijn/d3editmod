@@ -6,37 +6,37 @@
 #include "x86emu_private.h"
 typedef struct x86emu_s x86emu_t;
 
-static inline uint8_t Fetch8(x86emu_t *emu) {return *(uint8_t*)(R_EIP++);}
-static inline int8_t Fetch8s(x86emu_t *emu) {return *(int8_t*)(R_EIP++);}
+static inline uint8_t Fetch8(x86emu_t *emu) {return *(uint8_t*)(BASE+R_EIP++);}
+static inline int8_t Fetch8s(x86emu_t *emu) {return *(int8_t*)(BASE+R_EIP++);}
 static inline uint16_t Fetch16(x86emu_t *emu)
 {
-    uint16_t val = *(uint16_t*)R_EIP;
+    uint16_t val = *(uint16_t*)(BASE+R_EIP);
     R_EIP+=2;
     return val;
 }
 static inline int16_t Fetch16s(x86emu_t *emu)
 {
-    int16_t val = *(int16_t*)R_EIP;
+    int16_t val = *(int16_t*)(BASE+R_EIP);
     R_EIP+=2;
     return val;
 }
 static inline uint32_t Fetch32(x86emu_t *emu)
 {
-    uint32_t val = *(uint32_t*)R_EIP;
+    uint32_t val = *(uint32_t*)(BASE+R_EIP);
     R_EIP+=4;
     return val;
 }
 static inline int32_t Fetch32s(x86emu_t *emu)
 {
-    int32_t val = *(int32_t*)R_EIP;
+    int32_t val = *(int32_t*)(BASE+R_EIP);
     R_EIP+=4;
     return val;
 }
-static inline uint8_t Peek(x86emu_t *emu, int offset){return *(uint8_t*)(R_EIP + offset);}
+static inline uint8_t Peek(x86emu_t *emu, int offset){return *(uint8_t*)(BASE + R_EIP + offset);}
 
 static inline uint32_t Pop(x86emu_t *emu)
 {
-    uint32_t* st = ((uint32_t*)(R_ESP));
+    uint32_t* st = ((uint32_t*)(BASE+R_ESP));
     R_ESP += 4;
     return *st;
 }
@@ -44,7 +44,7 @@ static inline uint32_t Pop(x86emu_t *emu)
 static inline void Push(x86emu_t *emu, uint32_t v)
 {
     R_ESP -= 4;
-    *((uint32_t*)R_ESP) = v;
+    *((uint32_t*)(BASE+R_ESP)) = v;
 }
 
 
@@ -55,15 +55,15 @@ static inline reg32_t* GetECommon(x86emu_t* emu, uint32_t m)
     if (m<=7) {
         if(m==0x4) {
             uint8_t sib = Fetch8(emu);
-            uintptr_t base = ((sib&0x7)==5)?Fetch32(emu):(emu->regs[(sib&0x7)].dword[0]); // base
+            uint32_t base = ((sib&0x7)==5)?Fetch32(emu):(emu->regs[(sib&0x7)].dword[0]); // base
             base += (emu->sbiidx[(sib>>3)&7]->sdword[0] << (sib>>6));
-            return (reg32_t*)base;
+            return (reg32_t*)(BASE+base);
         } else if (m==0x5) { //disp32
-            return (reg32_t*)Fetch32(emu);
+            return (reg32_t*)(BASE+Fetch32(emu));
         }
-        return (reg32_t*)(emu->regs[m].dword[0]);
+        return (reg32_t*)(BASE+emu->regs[m].dword[0]);
     } else {
-        uintptr_t base;
+        uint32_t base;
         if((m&7)==4) {
             uint8_t sib = Fetch8(emu);
             base = emu->regs[(sib&0x7)].dword[0]; // base
@@ -72,7 +72,7 @@ static inline reg32_t* GetECommon(x86emu_t* emu, uint32_t m)
             base = emu->regs[(m&0x7)].dword[0];
         }
         base+=(m&0x80)?Fetch32s(emu):Fetch8s(emu);
-        return (reg32_t*)base;
+        return (reg32_t*)(BASE+base);
     }
 }
 
@@ -118,11 +118,11 @@ static inline reg32_t* GetEw16(x86emu_t *emu, uint32_t v)
             case 2: base += Fetch16s(emu); break;
             // case 3 is C0..C7, already dealt with
         }
-        return (reg32_t*)base;
+        return (reg32_t*)(BASE+base);
     }
 }
 
-static inline reg32_t* GetEw16off(x86emu_t *emu, uint32_t v, uintptr_t offset)
+static inline reg32_t* GetEw16off(x86emu_t *emu, uint32_t v, uint32_t offset)
 {
     uint32_t m = v&0xC7;    // filter Ed
     if(m>=0xC0) {
@@ -145,7 +145,7 @@ static inline reg32_t* GetEw16off(x86emu_t *emu, uint32_t v, uintptr_t offset)
             case 2: base += Fetch16s(emu); break;
             // case 3 is C0..C7, already dealt with
         }
-        return (reg32_t*)(base+offset);
+        return (reg32_t*)(BASE+base+offset);
     }
 }
 
@@ -200,9 +200,9 @@ void Run660F(x86emu_t *emu);
 void Run66D9(x86emu_t *emu);    // x87
 void Run6766(x86emu_t *emu);
 void RunGS(x86emu_t *emu);
-void RunGS0F(x86emu_t *emu, uintptr_t tlsdata);
+void RunGS0F(x86emu_t *emu, uint32_t tlsdata);
 void RunFS(x86emu_t *emu);
-void RunFS66(x86emu_t *emu, uintptr_t tlsdata);
+void RunFS66(x86emu_t *emu, uint32_t tlsdata);
 void RunLock(x86emu_t *emu);
 void RunLock66(x86emu_t *emu);
 
@@ -210,7 +210,7 @@ void x86Syscall(x86emu_t *emu);
 void x86Int3(x86emu_t* emu);
 x86emu_t* x86emu_fork(x86emu_t* e, int forktype);
 
-uintptr_t GetSegmentBaseEmu(x86emu_t* emu, int seg);
+uint32_t GetSegmentBaseEmu(x86emu_t* emu, int seg);
 #define GetGSBaseEmu(emu)    GetSegmentBaseEmu(emu, _GS)
 #define GetFSBaseEmu(emu)    GetSegmentBaseEmu(emu, _FS)
 #define GetESBaseEmu(emu)    GetSegmentBaseEmu(emu, _ES)
@@ -219,7 +219,9 @@ uintptr_t GetSegmentBaseEmu(x86emu_t* emu, int seg);
 const char* GetNativeName(void* p);
 
 #ifdef HAVE_TRACE
-void PrintTrace(x86emu_t* emu, uintptr_t ip, int dynarec);
+void PrintTrace(x86emu_t* emu, emu_ptr_t ip, int dynarec);
 #endif
+
+#define getAlternate(x) x
 
 #endif //__X86RUN_PRIVATE_H_

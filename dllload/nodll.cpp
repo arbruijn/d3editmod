@@ -288,88 +288,88 @@ struct {
 		unsigned (*fun8)(unsigned a, unsigned b, unsigned c, unsigned d, unsigned e, unsigned f, unsigned g, unsigned h);
 	};
 } funs[] = {
-	{"GetStdHandle", 1, myGetStdHandle},
-	{"WriteFile", 5, myWriteFile},
-	{"VirtualAlloc", 4, myVirtualAlloc},
-	{"IsBadWritePtr", 2, myIsBadWritePtr},
-	{"IsBadReadPtr", 2, myIsBadReadPtr},
-	{"HeapValidate", 3, myHeapValidate},
-	{"GetCommandLineA", 0, myGetCommandLineA},
-	{"GetVersion", 0, myGetVersion},
-	{"GetProcAddress", 2, myGetProcAddress},
-	{"GetModuleHandleA", 1, myGetModuleHandleA},
-	{"GetCurrentThreadId", 0, myGetCurrentThreadId},
-	{"TlsSetValue", 2, myTlsSetValue},
-	{"TlsAlloc", 0, myTlsAlloc},
-	{"TlsFree", 1, myTlsFree},
-	{"SetLastError", 1, mySetLastError},
-	{"TlsGetValue", 1, myTlsGetValue},
-	{"GetLastError", 0, myGetLastError},
-	{"DebugBreak", 0, myDebugBreak},
-	{"InterlockedDecrement", 1, myInterlockedDecrement},
-	{"OutputDebugStringA", 1, myOutputDebugStringA},
-	{"LoadLibraryA", 1, myLoadLibraryA},
-	{"InterlockedIncrement", 1, myInterlockedIncrement},
-	{"GetModuleFileNameA", 3, myGetModuleFileNameA},
-	{"ExitProcess", 1, myExitProcess},
-	{"TerminateProcess", 2, myTerminateProcess},
-	{"GetCurrentProcess", 0, myGetCurrentProcess},
-	{"InitializeCriticalSection", 1, myInitializeCriticalSection},
-	{"DeleteCriticalSection", 1, myDeleteCriticalSection},
-	{"EnterCriticalSection", 1, myEnterCriticalSection},
-	{"LeaveCriticalSection", 1, myLeaveCriticalSection},
-	{"RtlUnwind", 4, myRtlUnwind},
-	{"HeapAlloc", 3, myHeapAlloc},
-	{"HeapReAlloc", 4, myHeapReAlloc},
-	{"HeapFree", 3, myHeapFree},
-	{"VirtualFree", 3, myVirtualFree},
-	{"GetEnvironmentVariableA", 3, myGetEnvironmentVariableA},
-	{"GetVersionExA", 1, myGetVersionExA},
-	{"HeapDestroy", 1, myHeapDestroy},
-	{"HeapCreate", 3, myHeapCreate},
-	{"GetCPInfo", 2, myGetCPInfo},
-	{"GetACP", 0, myGetACP},
-	{"GetOEMCP", 0, myGetOEMCP},
-	{"SetHandleCount", 1, mySetHandleCount},
-	{"GetFileType", 1, myGetFileType},
-	{"GetStartupInfoA", 1, myGetStartupInfoA},
-	{"FreeEnvironmentStringsA", 1, myFreeEnvironmentStringsA},
-	{"FreeEnvironmentStringsW", 1, myFreeEnvironmentStringsW},
-	{"WideCharToMultiByte", 8, myWideCharToMultiByte},
-	{"GetEnvironmentStrings", 0, myGetEnvironmentStrings},
-	{"GetEnvironmentStringsW", 0, myGetEnvironmentStringsW},
-	{"SetFilePointer", 4, mySetFilePointer},
-	{"MultiByteToWideChar", 6, myMultiByteToWideChar},
-	{"GetStringTypeA", 5, myGetStringTypeA},
-	{"GetStringTypeW", 5, myGetStringTypeW},
-	{"LCMapStringA", 6, myLCMapStringA},
-	{"LCMapStringW", 6, myLCMapStringW},
-	{"RaiseException", 4, myRaiseException},
-	{"SetStdHandle", 2, mySetStdHandle},
-	{"FlushFileBuffers", 1, myFlushFileBuffers},
-	{"CloseHandle", 1, myCloseHandle},
+	{"GetStdHandle", 1, (void *)myGetStdHandle},
+	{"WriteFile", 5, (void *)myWriteFile},
+	{"VirtualAlloc", 4, (void *)myVirtualAlloc},
+	{"IsBadWritePtr", 2, (void *)myIsBadWritePtr},
+	{"IsBadReadPtr", 2, (void *)myIsBadReadPtr},
+	{"HeapValidate", 3, (void *)myHeapValidate},
+	{"GetCommandLineA", 0, (void *)myGetCommandLineA},
+	{"GetVersion", 0, (void *)myGetVersion},
+	{"GetProcAddress", 2, (void *)myGetProcAddress},
+	{"GetModuleHandleA", 1, (void *)myGetModuleHandleA},
+	{"GetCurrentThreadId", 0, (void *)myGetCurrentThreadId},
+	{"TlsSetValue", 2, (void *)myTlsSetValue},
+	{"TlsAlloc", 0, (void *)myTlsAlloc},
+	{"TlsFree", 1, (void *)myTlsFree},
+	{"SetLastError", 1, (void *)mySetLastError},
+	{"TlsGetValue", 1, (void *)myTlsGetValue},
+	{"GetLastError", 0, (void *)myGetLastError},
+	{"DebugBreak", 0, (void *)myDebugBreak},
+	{"InterlockedDecrement", 1, (void *)myInterlockedDecrement},
+	{"OutputDebugStringA", 1, (void *)myOutputDebugStringA},
+	{"LoadLibraryA", 1, (void *)myLoadLibraryA},
+	{"InterlockedIncrement", 1, (void *)myInterlockedIncrement},
+	{"GetModuleFileNameA", 3, (void *)myGetModuleFileNameA},
+	{"ExitProcess", 1, (void *)myExitProcess},
+	{"TerminateProcess", 2, (void *)myTerminateProcess},
+	{"GetCurrentProcess", 0, (void *)myGetCurrentProcess},
+	{"InitializeCriticalSection", 1, (void *)myInitializeCriticalSection},
+	{"DeleteCriticalSection", 1, (void *)myDeleteCriticalSection},
+	{"EnterCriticalSection", 1, (void *)myEnterCriticalSection},
+	{"LeaveCriticalSection", 1, (void *)myLeaveCriticalSection},
+	{"RtlUnwind", 4, (void *)myRtlUnwind},
+	{"HeapAlloc", 3, (void *)myHeapAlloc},
+	{"HeapReAlloc", 4, (void *)myHeapReAlloc},
+	{"HeapFree", 3, (void *)myHeapFree},
+	{"VirtualFree", 3, (void *)myVirtualFree},
+	{"GetEnvironmentVariableA", 3, (void *)myGetEnvironmentVariableA},
+	{"GetVersionExA", 1, (void *)myGetVersionExA},
+	{"HeapDestroy", 1, (void *)myHeapDestroy},
+	{"HeapCreate", 3, (void *)myHeapCreate},
+	{"GetCPInfo", 2, (void *)myGetCPInfo},
+	{"GetACP", 0, (void *)myGetACP},
+	{"GetOEMCP", 0, (void *)myGetOEMCP},
+	{"SetHandleCount", 1, (void *)mySetHandleCount},
+	{"GetFileType", 1, (void *)myGetFileType},
+	{"GetStartupInfoA", 1, (void *)myGetStartupInfoA},
+	{"FreeEnvironmentStringsA", 1, (void *)myFreeEnvironmentStringsA},
+	{"FreeEnvironmentStringsW", 1, (void *)myFreeEnvironmentStringsW},
+	{"WideCharToMultiByte", 8, (void *)myWideCharToMultiByte},
+	{"GetEnvironmentStrings", 0, (void *)myGetEnvironmentStrings},
+	{"GetEnvironmentStringsW", 0, (void *)myGetEnvironmentStringsW},
+	{"SetFilePointer", 4, (void *)mySetFilePointer},
+	{"MultiByteToWideChar", 6, (void *)myMultiByteToWideChar},
+	{"GetStringTypeA", 5, (void *)myGetStringTypeA},
+	{"GetStringTypeW", 5, (void *)myGetStringTypeW},
+	{"LCMapStringA", 6, (void *)myLCMapStringA},
+	{"LCMapStringW", 6, (void *)myLCMapStringW},
+	{"RaiseException", 4, (void *)myRaiseException},
+	{"SetStdHandle", 2, (void *)mySetStdHandle},
+	{"FlushFileBuffers", 1, (void *)myFlushFileBuffers},
+	{"CloseHandle", 1, (void *)myCloseHandle},
 	{"mprintf", -1},
-	{"File_Open", 2 | 0x100, File_Open},
-	{"File_eof", 1 | 0x100, File_eof},
-	{"File_ReadString", 3 | 0x100, File_ReadString},
-	{"File_Close", 1 | 0x100, File_Close},
-	{"FindName", 1 | 0x100, FindName},
-	{"Scrpt_FindObjectName", 1 | 0x100, Scrpt_FindObjectName},
-	{"Scrpt_FindRoomName", 1 | 0x100, Scrpt_FindRoomName},
-	{"Scrpt_FindTriggerName", 1 | 0x100, Scrpt_FindTriggerName},
-	{"Scrpt_FindLevelGoalName", 1 | 0x100, Scrpt_FindLevelGoalName},
-	{"Scrpt_FindTextureName", 1 | 0x100, Scrpt_FindTextureName},
-	{"Scrpt_GetTriggerFace", 1 | 0x100, Scrpt_GetTriggerFace},
-	{"Scrpt_GetTriggerRoom", 1 | 0x100, Scrpt_GetTriggerRoom},
-	{"Scrpt_CreateTimer", 1 | 0x100, Scrpt_CreateTimer},
-	{"Cine_StartCanned", 1 | 0x100, Cine_StartCanned},
-	{"MSafe_CallFunction", 2 | 0x100, MSafe_CallFunction},
-	{"MSafe_GetValue", 2 | 0x100, MSafe_GetValue},
-	{"MSafe_DoPowerup", 1 | 0x100, MSafe_DoPowerup},
-	{"Obj_SetCustomAnim", 7 | 0x100, Obj_SetCustomAnim},
-	{"Obj_Kill", 6 | 0x100, Obj_Kill},
-	{"LGoal_Value", 5 | 0x100, LGoal_Value},
-	{"Matcen_Value", 5 | 0x100, Matcen_Value},
+	{"File_Open", 2 | 0x100, (void *)File_Open},
+	{"File_eof", 1 | 0x100, (void *)File_eof},
+	{"File_ReadString", 3 | 0x100, (void *)File_ReadString},
+	{"File_Close", 1 | 0x100, (void *)File_Close},
+	{"FindName", 1 | 0x100, (void *)FindName},
+	{"Scrpt_FindObjectName", 1 | 0x100, (void *)Scrpt_FindObjectName},
+	{"Scrpt_FindRoomName", 1 | 0x100, (void *)Scrpt_FindRoomName},
+	{"Scrpt_FindTriggerName", 1 | 0x100, (void *)Scrpt_FindTriggerName},
+	{"Scrpt_FindLevelGoalName", 1 | 0x100, (void *)Scrpt_FindLevelGoalName},
+	{"Scrpt_FindTextureName", 1 | 0x100, (void *)Scrpt_FindTextureName},
+	{"Scrpt_GetTriggerFace", 1 | 0x100, (void *)Scrpt_GetTriggerFace},
+	{"Scrpt_GetTriggerRoom", 1 | 0x100, (void *)Scrpt_GetTriggerRoom},
+	{"Scrpt_CreateTimer", 1 | 0x100, (void *)Scrpt_CreateTimer},
+	{"Cine_StartCanned", 1 | 0x100, (void *)Cine_StartCanned},
+	{"MSafe_CallFunction", 2 | 0x100, (void *)MSafe_CallFunction},
+	{"MSafe_GetValue", 2 | 0x100, (void *)MSafe_GetValue},
+	{"MSafe_DoPowerup", 1 | 0x100, (void *)MSafe_DoPowerup},
+	{"Obj_SetCustomAnim", 7 | 0x100, (void *)Obj_SetCustomAnim},
+	{"Obj_Kill", 6 | 0x100, (void *)Obj_Kill},
+	{"LGoal_Value", 5 | 0x100, (void *)LGoal_Value},
+	{"Matcen_Value", 5 | 0x100, (void *)Matcen_Value},
 };
 #define MAX_FUNS (sizeof(funs) / sizeof(funs[0]))
 
@@ -640,7 +640,7 @@ void image_import(IMAGE_NT_HEADERS* ntHdr, void* pBase) {
 	}
 }
 
-struct dll {
+struct dll_t {
 	void* mem;
 	unsigned memsize;
 	unsigned entry;
@@ -708,7 +708,7 @@ typedef unsigned(__stdcall std6fun)(unsigned, unsigned, unsigned, unsigned, unsi
 typedef unsigned(__stdcall std7fun)(unsigned, unsigned, unsigned, unsigned, unsigned, unsigned, unsigned);
 typedef unsigned(__stdcall std8fun)(unsigned, unsigned, unsigned, unsigned, unsigned, unsigned, unsigned, unsigned);
 
-unsigned dllfun_call(unsigned fun, int argc, ...) {
+unsigned dllfun_call(dll_t *dll, unsigned fun, int argc, ...) {
 	va_list vp;
 	va_start(vp, argc);
 #if 0
@@ -743,15 +743,17 @@ unsigned dllfun_call(unsigned fun, int argc, ...) {
 		return ((std7fun*)fun)(args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
 	case 8:
 		return ((std8fun*)fun)(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7]);
+	default:
+		abort();
 	}
 #endif
 }
 
-struct dll* dll_load(const char* filename) {
+struct dll_t* dll_load(const char* filename) {
 	void* pFile, * pBase;
-	struct dll* dll;
+	struct dll_t* dll;
 
-	if (!(dll = (struct dll*)malloc(sizeof(*dll))))
+	if (!(dll = (struct dll_t*)malloc(sizeof(*dll))))
 		return 0;
 
 	if (!(pFile = readfile(filename, &dll->memsize)))
@@ -777,7 +779,7 @@ struct dll* dll_load(const char* filename) {
 		printf("%s %d %x %x\n", (char*)pBase + ((unsigned*)((char*)pBase + export_dir->AddressOfNames))[i], f, addr, (unsigned)pBase + addr);
 	}
 
-	if (!dllfun_call(dll->entry, 3, (unsigned)dll->mem, DLL_PROCESS_ATTACH, 0)) {
+	if (!dllfun_call(dll, dll->entry, 3, (unsigned)dll->mem, DLL_PROCESS_ATTACH, 0)) {
 		free(dll->mem);
 		free(dll);
 		return NULL;
@@ -786,10 +788,10 @@ struct dll* dll_load(const char* filename) {
 	return dll;
 }
 
-void dll_free(struct dll* dll) {
+void dll_free(struct dll_t* dll) {
 	if (!dll)
 		return;
-	dllfun_call(dll->entry, 3, (unsigned)dll->mem, DLL_PROCESS_DETACH, 0);
+	dllfun_call(dll, dll->entry, 3, (unsigned)dll->mem, DLL_PROCESS_DETACH, 0);
 	//free(dll->mem);
 #if 0
 	munmap(dll->mem, dll->memsize);
@@ -799,7 +801,7 @@ void dll_free(struct dll* dll) {
 	free(dll);
 }
 
-unsigned dll_find(struct dll* dll, const char* name) {
+unsigned dll_find(struct dll_t* dll, const char* name) {
 	IMAGE_EXPORT_DIRECTORY* export_dir = dll->exports;
 	char* base = (char*)dll->mem;
 	unsigned* names = (unsigned*)(base + export_dir->AddressOfNames);
@@ -813,9 +815,10 @@ unsigned dll_find(struct dll* dll, const char* name) {
 	return 0;
 }
 
-void osiris_setup(tOSIRISModuleInit* mod) {
+void osiris_setup(dll_t *dll, tOSIRISModuleInit* mod) {
 	memset(mod, 0, sizeof(*mod));
 	mod->game_checksum = 0x87888d9b;
+	#if 0
 	mod->mprintf = (mprintf_fp)find_fun("mprintf");
 	mod->File_ReadString = (File_ReadString_fp)find_fun("File_ReadString");
 	mod->File_Open = (File_Open_fp)find_fun("File_Open");
@@ -841,6 +844,153 @@ void osiris_setup(tOSIRISModuleInit* mod) {
 	mod->Obj_Kill = (Obj_Kill_fp)find_fun("Obj_Kill");
 	mod->LGoal_Value = (LGoal_Value_fp)find_fun("LGoal_Value");
 	mod->Matcen_Value = (Matcen_Value_fp)find_fun("Matcen_Value");
+	#endif
+	int i = 0;
+	mod->fp[i++] = find_fun("MonoPrintf");
+	mod->fp[i++] = find_fun("msafe_CallFunction");
+	mod->fp[i++] = find_fun("msafe_GetValue");
+	mod->fp[i++] = find_fun("osipf_CallObjectEvent");
+	mod->fp[i++] = find_fun("osipf_CallTriggerEvent");
+	mod->fp[i++] = find_fun("osipf_SoundTouch");
+	mod->fp[i++] = find_fun("osipf_ObjectFindID");
+	mod->fp[i++] = find_fun("osipf_WeaponFindID");
+	mod->fp[i++] = find_fun("osipf_ObjectGetTimeLived");
+	mod->fp[i++] = find_fun("osipf_GetGunPos");
+	mod->fp[i++] = find_fun("osipf_RoomValue");
+	mod->fp[i++] = find_fun("osipf_IsRoomValid");
+	mod->fp[i++] = find_fun("osipf_GetAttachParent");
+	mod->fp[i++] = find_fun("osipf_GetNumAttachSlots");
+	mod->fp[i++] = find_fun("osipf_GetAttachChildHandle");
+	mod->fp[i++] = find_fun("osipf_AttachObjectAP");
+	mod->fp[i++] = find_fun("osipf_AttachObjectRad");
+	mod->fp[i++] = find_fun("osipf_UnattachFromParent");
+	mod->fp[i++] = find_fun("osipf_UnattachChild");
+	mod->fp[i++] = find_fun("osipf_UnattachChildren");
+	mod->fp[i++] = find_fun("osipf_RayCast");
+	mod->fp[i++] = find_fun("osipf_AIGetPathID");
+	mod->fp[i++] = find_fun("osipf_AIGoalFollowPathSimple");
+	mod->fp[i++] = find_fun("osipf_AIPowerSwitch");
+	mod->fp[i++] = find_fun("osipf_AITurnTowardsVectors");
+	mod->fp[i++] = find_fun("osipf_AISetType");
+	mod->fp[i++] = find_fun("osipf_AIFindHidePos");
+	mod->fp[i++] = find_fun("osipf_AIGoalAddEnabler");
+	mod->fp[i++] = find_fun("osipf_AIGoalAdd");
+	mod->fp[i++] = find_fun("osipf_AIGoalClear");
+	mod->fp[i++] = find_fun("osipf_AIValue");
+	mod->fp[i++] = find_fun("osipf_AIFindObjOfType");
+	mod->fp[i++] = find_fun("osipf_AIGetRoomPathPoint");
+	mod->fp[i++] = find_fun("osipf_AIFindEnergyCenter");
+	mod->fp[i++] = find_fun("osipf_AIGetDistToObj");
+	mod->fp[i++] = find_fun("osipf_AISetGoalFlags");
+	mod->fp[i++] = find_fun("osipf_AISetGoalCircleDist");
+	mod->fp[i++] = find_fun("osipf_CFReadBytes");
+	mod->fp[i++] = find_fun("osipf_CFReadInt");
+	mod->fp[i++] = find_fun("osipf_CFReadShort");
+	mod->fp[i++] = find_fun("osipf_CFReadByte");
+	mod->fp[i++] = find_fun("osipf_CFReadFloat");
+	mod->fp[i++] = find_fun("osipf_CFReadDouble");
+	mod->fp[i++] = find_fun("osipf_CFReadString");
+	mod->fp[i++] = find_fun("osipf_CFWriteBytes");
+	mod->fp[i++] = find_fun("osipf_CFWriteString");
+	mod->fp[i++] = find_fun("osipf_CFWriteInt");
+	mod->fp[i++] = find_fun("osipf_CFWriteShort");
+	mod->fp[i++] = find_fun("osipf_CFWriteByte");
+	mod->fp[i++] = find_fun("osipf_CFWriteFloat");
+	mod->fp[i++] = find_fun("osipf_CFWriteDouble");
+	mod->fp[i++] = find_fun("Osiris_AllocateMemory");
+	mod->fp[i++] = find_fun("Osiris_FreeMemory");
+	mod->fp[i++] = find_fun("Osiris_CancelTimer");
+	mod->fp[i++] = find_fun("Osiris_CreateTimer");
+	mod->fp[i++] = find_fun("msafe_DoPowerup");
+	mod->fp[i++] = find_fun("osipf_ObjCreate");
+	mod->fp[i++] = find_fun("osipf_GameTime");
+	mod->fp[i++] = find_fun("osipf_FrameTime");
+	mod->fp[i++] = find_fun("osipf_ObjWBValue");
+	mod->fp[i++] = find_fun("Osiris_TimerExists");
+	mod->fp[i++] = find_fun("osipf_ObjectValue");
+	mod->fp[i++] = find_fun("osipf_MatcenValue");
+	mod->fp[i++] = find_fun("osipf_MatcenReset");
+	mod->fp[i++] = find_fun("osipf_MatcenCopy");
+	mod->fp[i++] = find_fun("osipf_MatcenCreate");
+	mod->fp[i++] = find_fun("osipf_MatcenFindId");
+	mod->fp[i++] = find_fun("osipf_MissionFlagSet");
+	mod->fp[i++] = find_fun("osipf_MissionFlagGet");
+	mod->fp[i++] = find_fun("osipf_PlayerValue");
+	mod->fp[i++] = find_fun("osipf_ObjectCustomAnim");
+	mod->fp[i++] = find_fun("osipf_PlayerAddHudMessage");
+	mod->fp[i++] = find_fun("osipf_ObjGhost");
+	mod->fp[i++] = find_fun("osipf_ObjBurning");
+	mod->fp[i++] = find_fun("osipf_ObjIsEffect");
+	mod->fp[i++] = find_fun("osipf_CFopen");
+	mod->fp[i++] = find_fun("osipf_CFclose");
+	mod->fp[i++] = find_fun("osipf_CFtell");
+	mod->fp[i++] = find_fun("osipf_CFeof");
+	mod->fp[i++] = find_fun("osipf_SoundStop");
+	mod->fp[i++] = find_fun("osipf_SoundPlay2d");
+	mod->fp[i++] = find_fun("osipf_SoundPlay3d");
+	mod->fp[i++] = find_fun("osipf_SoundFindId");
+	mod->fp[i++] = find_fun("osipf_AIIsObjFriend");
+	mod->fp[i++] = find_fun("osipf_AIIsObjEnemy");
+	mod->fp[i++] = find_fun("osipf_AIGoalValue");
+	mod->fp[i++] = find_fun("osipf_AIGetNearbyObjs");
+	mod->fp[i++] = find_fun("osipf_AIGetCurGoalIndex");
+	mod->fp[i++] = find_fun("Osiris_OMMS_Malloc");
+	mod->fp[i++] = find_fun("Osiris_OMMS_Attach");
+	mod->fp[i++] = find_fun("Osiris_OMMS_Detach");
+	mod->fp[i++] = find_fun("Osiris_OMMS_Free");
+	mod->fp[i++] = find_fun("Osiris_OMMS_Find");
+	mod->fp[i++] = find_fun("Osiris_OMMS_GetInfo");
+	mod->fp[i++] = find_fun("Cinematic_Start");
+	mod->fp[i++] = find_fun("Cinematic_Stop");
+	mod->fp[i++] = find_fun("osipf_FindSoundName");
+	mod->fp[i++] = find_fun("osipf_FindRoomName");
+	mod->fp[i++] = find_fun("osipf_FindTriggerName");
+	mod->fp[i++] = find_fun("osipf_FindObjectName");
+	mod->fp[i++] = find_fun("osipf_GetTriggerRoom");
+	mod->fp[i++] = find_fun("osipf_GetTriggerFace");
+	mod->fp[i++] = find_fun("osipf_FindDoorName");
+	mod->fp[i++] = find_fun("osipf_FindTextureName");
+	mod->fp[i++] = find_fun("osipf_CreateRandomSparks");
+	mod->fp[i++] = find_fun("Osiris_CancelTimerID");
+	mod->fp[i++] = find_fun("osipf_GetGroundPos");
+	mod->fp[i++] = find_fun("osipf_EnableShip");
+	mod->fp[i++] = find_fun("osipf_IsShipEnabled");
+	mod->fp[i++] = find_fun("osipf_PathGetInformation");
+	mod->fp[i++] = find_fun("Cinematic_StartCannedScript");
+	mod->fp[i++] = find_fun("osipf_FindMatcenName");
+	mod->fp[i++] = find_fun("osipf_FindPathName");
+	mod->fp[i++] = find_fun("osipf_FindLevelGoalName");
+	mod->fp[i++] = find_fun("osipf_ObjectFindType");
+	mod->fp[i++] = find_fun("osipf_LGoalValue");
+	mod->fp[i++] = find_fun("osipf_ObjMakeListOfType");
+	mod->fp[i++] = find_fun("osipf_ObjKill");
+	mod->fp[i++] = find_fun("osipf_AIIsDestReachable");
+	mod->fp[i++] = find_fun("osipf_AIIsObjReachable");
+	mod->fp[i++] = find_fun("osipf_GameGetDiffLevel");
+	mod->fp[i++] = find_fun("osipf_GetLanguageSetting");
+	mod->fp[i++] = find_fun("osipf_PathValue");
+}
+
+unsigned dll_push(dll_t *dll, const void *mem, int size) {
+	/*
+	dll->as.stack_ofs -= size;
+	if (mem)
+		memcpy(dll->as.base + dll->as.stack_ofs, mem, size);
+	return dll->as.stack_ofs;
+	*/
+	return (unsigned)mem;
+}
+
+void dll_pop(dll_t *dll, int size) {
+	//dll->as.stack_ofs += size;
+}
+
+unsigned dll_get32(dll_t *dll, unsigned vmp) {
+	return *(unsigned *)(/*dll->as.base +*/ vmp);
+}
+
+void dll_get(dll_t *dll, unsigned vmp, void *buf, int size) {
+	memcpy(buf, (void *)vmp, size);
 }
 
 #ifdef TEST
@@ -876,7 +1026,7 @@ unsigned emucall1(x86emu_t* emu, unsigned ip, unsigned a) {
 int main() {
 	dll_init();
 
-	struct dll* dll = dll_load("level1.dll");
+	struct dll_t* dll = dll_load("level1.dll");
 
 	unsigned f = dll_find(dll, "_InitializeDLL@4");
 	printf("f %x\n", f);

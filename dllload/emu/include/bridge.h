@@ -18,7 +18,7 @@ void* GetNativeFnc(uintptr_t fnc);
 void* GetNativeFncOrFnc(uintptr_t fnc);
 
 int hasAlternate(void* addr);
-void* getAlternate(void* addr);
+//void* getAlternate(void* addr);
 void addAlternate(void* addr, void* alt);
 void cleanAlternate();
 
