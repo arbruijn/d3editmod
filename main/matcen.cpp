@@ -47,7 +47,7 @@
 //#include "demofile.h"
 #define NEWEDITORSRC
 
-#ifdef __LINUX__
+#ifndef max
 #define max(a,b) ((a>b)?a:b)
 #elif defined(MACINTOSH)
 #include "macros.h"

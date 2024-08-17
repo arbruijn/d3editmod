@@ -1814,7 +1814,7 @@ int rGL_Setup()
 
 void rGL_InitMultitexture(void)
 {
-	#if 1//ndef STATIC_OPENGL
+	#ifdef WIN32 // 1//ndef STATIC_OPENGL
 	if (!(dglActiveTextureARB = (glActiveTextureARB_fp)dwglGetProcAddress("glActiveTextureARB")) ||
 		!(dglClientActiveTextureARB = (glClientActiveTextureARB_fp)dwglGetProcAddress("glClientActiveTextureARB")) ||
 		!(dglMultiTextCoord4f = (glMultiTextCoord4f_fp)dwglGetProcAddress("glMultiTexCoord4f")))

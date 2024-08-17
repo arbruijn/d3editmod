@@ -67,7 +67,7 @@ fix FloatToFixFast(float num);
 //Fixed-point math functions in inline ASM form
 #if defined(MACINTOSH)
 	#include "fixmac.h"
-#elif defined(WIN32)
+#elif defined(_MSC_VER)
 	#include "win\fixwin32.h"
 #endif
 

@@ -80,13 +80,13 @@ void Debug_ConsoleRedirectMessages(int virtual_window, int physical_window);
 //	DEBUGGING MACROS
 //Break into the debugger, if this feature was enabled in Debug_init()
 #if !defined(RELEASE)
-#if defined(WIN32)
+#if defined(_MSC_VER)
 	#define debug_break()  \
 		do {  \
 			if (Debug_break) \
 				__asm int 3  \
 		} while (0)
-#elif defined(__LINUX__)
+#elif defined(__LINUX__) || defined(WIN32)
 	void ddio_InternalKeyClose();
 	//#define debug_break() do{__asm__ __volatile__ ( "int $3" );}while(0)
 	#ifdef __EMSCRIPTEN__

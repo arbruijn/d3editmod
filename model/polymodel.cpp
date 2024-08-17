@@ -30,7 +30,7 @@
 #include "robotfire.h"
 #include "mem.h"
 
-#ifdef __LINUX__
+#ifndef max
 #define max(a,b) ((a>b)?a:b)
 #endif
 

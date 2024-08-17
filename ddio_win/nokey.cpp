@@ -1,0 +1,1 @@
+void ddio_InternalKeyClose() {}

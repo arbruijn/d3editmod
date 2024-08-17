@@ -71,7 +71,7 @@ if(LINUX)
 list(APPEND SRC mem/Mem.cpp)
 list(APPEND SRC linux/lnxdebug.cpp linux/lnxlib.cpp)
 else()
-list(APPEND SRC ddio_win/winfile.cpp)
+list(APPEND SRC ddio_win/winfile.cpp ddio_win/nokey.cpp)
 endif()
 
 list(APPEND SRC globals.cpp util.cpp)
