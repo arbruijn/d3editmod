@@ -786,16 +786,12 @@ char *Inventory::GetPosName()
 
 int Inventory::GetPosCount()
 {
-	inven_item *item;
-	
-	item = this->pos;
-	if (item == NULL) {
-		return (int)item;
-	}
-	if ((item->iflags & 0x20) != 0) {
+	if (!pos)
+		return 0;
+	if ((pos->iflags & 0x20) != 0) {
 		return 1;
 	}
-	return item->count;
+	return pos->count;
 }
 
 
