@@ -1509,8 +1509,10 @@ int tbl_old;
 char tables_dir[PSPATHNAME_LEN];
 char global_TableFile[PSPATHNAME_LEN];
 
-void ds_printf(const char *msg, ...) { va_list vp; va_start(vp, msg); vprintf(msg, vp); va_end(vp); }
-void write_init_string(const char *msg, float progress) { printf("%s", msg); }
+//void ds_printf(const char *msg, ...) { va_list vp; va_start(vp, msg); vprintf(msg, vp); va_end(vp); }
+//void write_init_string(const char *msg, float progress) { printf("%s", msg); }
+void ds_printf(const char *msg, ...) { }
+void write_init_string(const char *msg, float progress) { }
 
 int mng_LoadTableFiles(int show_progress) {
 	int last_pos = 0, start, size;
