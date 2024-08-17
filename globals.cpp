@@ -61,10 +61,14 @@ int Cur_object_index = 0;
 int Current_trigger=-1;
 
 bool Disable_editor_rendering = false;
+#ifdef WIN32
 bool Debug_break;
+#endif
 
 void DrawDebugInfo(object* obj) {}
+#ifdef WIN32
 bool Mem_low_memory_mode;
+#endif
 int Game_show_sphere;
 unsigned char* TextShadeTable8[256];
 unsigned long* TextShadeTabl16[256];
