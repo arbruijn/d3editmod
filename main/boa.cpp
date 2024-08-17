@@ -1105,9 +1105,12 @@ int BOAGetMineChecksum ()
 
 			for (k=0;k<fp->num_verts;k++)
 			{
-				total+=rp->verts[fp->face_verts[k]].x;
-				total+=rp->verts[fp->face_verts[k]].y;
-				total+=rp->verts[fp->face_verts[k]].z;
+				total+=(double)rp->verts[fp->face_verts[k]].x;
+				total+=(double)rp->verts[fp->face_verts[k]].y;
+				total+=(double)rp->verts[fp->face_verts[k]].z;
+				//total+=rp->verts[fp->face_verts[k]].x;
+				//total+=rp->verts[fp->face_verts[k]].y;
+				//total+=rp->verts[fp->face_verts[k]].z;
 			}
 
 			total += fp->num_verts << 4;
