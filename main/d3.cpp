@@ -1322,10 +1322,12 @@ EM_BOOL DoFrameEm(double time, void* userData) {
 
 extern "C" void initialize_gl4es();
 
+#if 0
 #ifdef WIN32
 #define DIR "." // "c:\\games\\d3"
 #else
 #define DIR "../../pkg/descent3"
+#endif
 #endif
 
 void testmis(int argc, char **argv) {
