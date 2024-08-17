@@ -395,7 +395,9 @@ int bm_TestName (const char *src)
 	ddio_SplitPath (src,path,filename,ext);
 	limit=BITMAP_NAME_LEN-5;
 	// Make sure we don't go over our name length limit
-	strncpy (filename,filename,limit);
+	//strncpy (filename,filename,limit);
+	if (strlen(filename) >= limit)
+		return -1;
 	strcpy (namedest,filename);
 	// Now, make sure there are no other bitmaps with this name
 	strcat (namedest,".ogf");
@@ -415,7 +417,9 @@ void bm_ChangeEndName (const char *src,char *dest)
 	ddio_SplitPath (src,path,filename,ext);
 	limit=BITMAP_NAME_LEN-5;
 	// Make sure we don't go over our name length limit
-	strncpy (filename,filename,limit);
+	//strncpy (filename,filename,limit);
+	if (strlen(filename) >= limit)
+		filename[limit] = 0;
 	Start:
 	if (curnum!=-1)
 		sprintf (namedest,"%s%d",filename,curnum);
