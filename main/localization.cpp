@@ -60,7 +60,7 @@ bool CreateStringTable(const char *filename,char ***table,int *size) {
 			return false;
 		Localization_language = 0;
 	}
-	lines = (char **)malloc(line_count * 4);
+	lines = (char **)malloc(line_count * sizeof(char *));
 	if (!(f = cfopen(filename, "rt"))) {
 		free(lines);
 		return false;

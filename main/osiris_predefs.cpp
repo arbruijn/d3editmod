@@ -378,7 +378,7 @@ bool Osiris_BindScriptsToObject(object *obj)
 	return false;
 }
 
-void osipf_MatcenValue(int matcen_handle,char op,char vtype,void *ptr,int prod_index)
+void osipf_MatcenValue(int matcen_handle,char op,char vtype,void *ptr,intptr_t prod_index)
 {
 	matcen *m;
 	if (matcen_handle < 0 || matcen_handle >= Num_matcens)
