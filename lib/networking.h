@@ -64,7 +64,7 @@ inline void INADDR_GET_SUN_SUNB(struct in_addr* st,unsigned char *s_b1,unsigned 
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #ifndef __EMSCRIPTEN__
-#include <linux/ipx.h>
+//#include <linux/ipx.h>
 #include <linux/if.h>
 #endif
 #include <sys/types.h>
